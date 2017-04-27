@@ -38,7 +38,7 @@ static void errno_exit(const char *s)
 	throw std::runtime_error(os.str());
 }
 
-NetworkThread::NetworkThread(Canvas& canvas)
+NetworkThread::NetworkThread(Canvas& canvas, uint16_t port)
     : canvas(canvas)
 {
 	int fd_max;
@@ -58,7 +58,6 @@ NetworkThread::NetworkThread(Canvas& canvas)
 	struct epoll_event evee = { .events = EPOLLIN, .data = { .fd = evfd } };
 	epoll_ctl(epollfd, EPOLL_CTL_ADD, evfd, &evee);
 
-	const int port = 1234;
 	struct sockaddr_in6 destAddr = {0};
 	destAddr.sin6_family = AF_INET6;
 	destAddr.sin6_port = htons(port);

@@ -128,9 +128,9 @@ void server::accept()
 	});
 }
 
-NetworkThread::NetworkThread(Canvas& canvas)
+NetworkThread::NetworkThread(Canvas& canvas, uint16_t port)
     : thread(&NetworkThread::work, this)
-    , s(io_service, {boost::asio::ip::address_v6::any(), 1234}, canvas)
+    , s(io_service, {boost::asio::ip::address_v6::any(), port}, canvas)
 {
 }
 

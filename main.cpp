@@ -22,7 +22,7 @@ int main() try
 	   << "  PX $x $y $color\\n";
 	writeText(canvas, 0, 0, os.str());
 
-	NetworkThread networkThread(canvas);
+	NetworkThread networkThread(canvas, 1234);
 
 	displayCanvas(canvas);
 }

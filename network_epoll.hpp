@@ -9,7 +9,7 @@
 class NetworkThread
 {
 	public:
-		NetworkThread(Canvas& canvas);
+		NetworkThread(Canvas& canvas, uint16_t port);
 		~NetworkThread();
 	private:
 		void work();

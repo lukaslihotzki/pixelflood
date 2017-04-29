@@ -21,14 +21,22 @@
 #include <fstream>
 #include <sstream>
 
-#define MAX_EVENTS 16
-
 #ifdef USE_EDGE_TRIGGERED_EPOLL
-#define MODE EPOLLET
+#define PRE_MODE EPOLLET
 #define READ while
+#define BREAK_IF_ET break
 #else
-#define MODE 0
+#define PRE_MODE 0
 #define READ if
+#define BREAK_IF_ET
+#endif
+
+#ifdef USE_ONESHOT_EPOLL
+#define MODE PRE_MODE | EPOLLONESHOT
+#define MAX_EVENTS 1
+#else
+#define MODE PRE_MODE
+#define MAX_EVENTS 16
 #endif
 
 static void errno_exit(const char *s)
@@ -38,7 +46,7 @@ static void errno_exit(const char *s)
 	throw std::runtime_error(os.str());
 }
 
-NetworkHandler::NetworkHandler(Canvas& canvas, uint16_t port, unsigned)
+NetworkHandler::NetworkHandler(Canvas& canvas, uint16_t port, unsigned threadCount)
     : canvas(canvas)
 {
 	int fd_max;
@@ -84,14 +92,23 @@ NetworkHandler::NetworkHandler(Canvas& canvas, uint16_t port, unsigned)
 	if (err < 0)
 		errno_exit("epoll_ctl add server");
 
-	thread = std::thread(&NetworkHandler::work, this);
+#ifdef USE_ONESHOT_EPOLL
+	for (unsigned i = 0; i < threadCount; i++) {
+#endif
+		threads.emplace(&NetworkHandler::work, this);
+#ifdef USE_ONESHOT_EPOLL
+	}
+#endif
 }
 
 NetworkHandler::~NetworkHandler()
 {
 	uint64_t one = 1;
 	write(evfd, &one, sizeof one);
-	thread.join();
+	while (!threads.empty()) {
+		threads.top().join();
+		threads.pop();
+	}
 	uint64_t devnull;
 	read(evfd, &devnull, sizeof devnull);
 	delete[] state;
@@ -114,9 +131,16 @@ void NetworkHandler::work()
 				READ ((clientfd = accept4(serverfd, nullptr, nullptr, SOCK_NONBLOCK)) >= 0) {
 					state[clientfd] = 0;
 					struct epoll_event ee = { .events = EPOLLIN | MODE, .data = { .fd = clientfd } };
-					int err = epoll_ctl(epollfd, EPOLL_CTL_ADD, clientfd, &ee);
+					int err;
+					err = epoll_ctl(epollfd, EPOLL_CTL_ADD, clientfd, &ee);
 					if (err < 0)
 						errno_exit("epoll_ctl add client");
+#ifdef USE_ONESHOT_EPOLL
+					struct epoll_event serveree = { .events = EPOLLIN | MODE, .data = { .fd = serverfd } };
+					err = epoll_ctl(epollfd, EPOLL_CTL_MOD, serverfd, &serveree);
+					if (err < 0)
+						errno_exit("epoll_ctl rearm server");
+#endif
 				}
 			} else {
 				char buf[32768];
@@ -196,11 +220,19 @@ void NetworkHandler::work()
 					if (c == buf + size) {
 						state[fd] = ((col & 0xFFFFFFFFL) << 0) | ((x & 0x1FFFL) << 32) | ((y & 0x1FFFL) << 45) | (((s * 9 + dc) & 0x3FL) << 58);
 					} else {
-						close(fd);
+						size = 0;
+						BREAK_IF_ET;
 					}
 				}
 				if (size == 0) {
 					close(fd);
+#ifdef USE_ONESHOT_EPOLL
+				} else {
+					struct epoll_event ee = { .events = EPOLLIN | MODE, .data = { .fd = fd } };
+					int err = epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &ee);
+					if (err < 0)
+						errno_exit("epoll_ctl rearm client");
+#endif
 				}
 			}
 		}

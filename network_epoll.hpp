@@ -4,15 +4,16 @@
 #include "canvas.hpp"
 #include <atomic>
 #include <thread>
+#include <stack>
 
 class NetworkHandler
 {
 	public:
-		NetworkHandler(Canvas& canvas, uint16_t port, unsigned threads = 1);
+		NetworkHandler(Canvas& canvas, uint16_t port, unsigned threadCount = 1);
 		~NetworkHandler();
 	private:
 		void work();
-		std::thread thread;
+		std::stack<std::thread> threads;
 		Canvas& canvas;
 		int epollfd, evfd, serverfd;
 		uint64_t* state;

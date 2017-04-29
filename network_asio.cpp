@@ -130,19 +130,19 @@ void server::accept()
 	});
 }
 
-NetworkThread::NetworkThread(Canvas& canvas, uint16_t port)
+NetworkHandler::NetworkHandler(Canvas& canvas, uint16_t port, unsigned)
     : s(io_service, {boost::asio::ip::address_v6::any(), port}, canvas)
-    , thread(&NetworkThread::work, this)
+    , thread(&NetworkHandler::work, this)
 {
 }
 
-NetworkThread::~NetworkThread()
+NetworkHandler::~NetworkHandler()
 {
 	io_service.stop();
 	thread.join();
 }
 
-void NetworkThread::work()
+void NetworkHandler::work()
 {
 	io_service.run();
 }

@@ -38,7 +38,7 @@ static void errno_exit(const char *s)
 	throw std::runtime_error(os.str());
 }
 
-NetworkThread::NetworkThread(Canvas& canvas, uint16_t port)
+NetworkHandler::NetworkHandler(Canvas& canvas, uint16_t port, unsigned)
     : canvas(canvas)
 {
 	int fd_max;
@@ -84,10 +84,10 @@ NetworkThread::NetworkThread(Canvas& canvas, uint16_t port)
 	if (err < 0)
 		errno_exit("epoll_ctl add server");
 
-	thread = std::thread(&NetworkThread::work, this);
+	thread = std::thread(&NetworkHandler::work, this);
 }
 
-NetworkThread::~NetworkThread()
+NetworkHandler::~NetworkHandler()
 {
 	uint64_t one = 1;
 	write(evfd, &one, sizeof one);
@@ -97,7 +97,7 @@ NetworkThread::~NetworkThread()
 	delete[] state;
 }
 
-void NetworkThread::work()
+void NetworkHandler::work()
 {
 	const unsigned xmax = canvas.width, ymax = canvas.height;
 

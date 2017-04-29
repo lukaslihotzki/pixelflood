@@ -31,11 +31,11 @@ class server
 		Canvas& canvas;
 };
 
-class NetworkThread
+class NetworkHandler
 {
 	public:
-		NetworkThread(Canvas& canvas, uint16_t port);
-		~NetworkThread();
+		NetworkHandler(Canvas& canvas, uint16_t port, unsigned threads = 1);
+		~NetworkHandler();
 	private:
 		void work();
 		boost::asio::io_service io_service;

@@ -22,7 +22,7 @@ int main() try
 	   << "  PX $x $y $color\\n";
 	writeText(canvas, os.str());
 
-	NetworkThread networkThread(canvas, 1234);
+	NetworkHandler networkHandler(canvas, 1234, std::thread::hardware_concurrency());
 
 	displayCanvas(canvas);
 }

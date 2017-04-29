@@ -120,17 +120,19 @@ server::server(boost::asio::io_service& io_service, boost::asio::ip::tcp::endpoi
 void server::accept()
 {
 	acceptor.async_accept(next_client, [this] (boost::system::error_code err) {
-		connections.emplace_front(std::move(next_client), canvas);
-		connections.front().destroy = [this, it = connections.begin()] () {
-			connections.erase(it);
-		};
+		if (!err) {
+			connections.emplace_front(std::move(next_client), canvas);
+			connections.front().destroy = [this, it = connections.begin()] () {
+				connections.erase(it);
+			};
+		}
 		accept();
 	});
 }
 
 NetworkThread::NetworkThread(Canvas& canvas, uint16_t port)
-    : thread(&NetworkThread::work, this)
-    , s(io_service, {boost::asio::ip::address_v6::any(), port}, canvas)
+    : s(io_service, {boost::asio::ip::address_v6::any(), port}, canvas)
+    , thread(&NetworkThread::work, this)
 {
 }
 

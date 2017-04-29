@@ -17,7 +17,7 @@ std::string exec(const char* cmd)
 	return result;
 }
 
-void writeText(const Canvas& canvas, int px, int py, std::string text)
+void writeText(const Canvas& canvas, std::string text)
 {
 	FT_Library library;
 	if (FT_Init_FreeType(&library)) {
@@ -49,8 +49,8 @@ void writeText(const Canvas& canvas, int px, int py, std::string text)
 		if (error)
 			continue;
 
-		for (int i = 0; i < slot->bitmap.rows; i++) {
-			for (int j = 0; j < slot->bitmap.width; j++) {
+		for (unsigned i = 0; i < slot->bitmap.rows; i++) {
+			for (unsigned j = 0; j < slot->bitmap.width; j++) {
 				unsigned char c = slot->bitmap.buffer[slot->bitmap.pitch * i + j];
 				canvas.data[canvas.width * (i + pen.y / 64 - slot->bitmap_top) + j + slot->bitmap_left + pen.x / 64] = c << 24 | c << 16 | c << 8;
 			}

@@ -5,6 +5,6 @@
 #include <string>
 
 std::string exec(const char* cmd);
-void writeText(const Canvas& canvas, int px, int py, std::string text);
+void writeText(const Canvas& canvas, std::string text);
 
 #endif

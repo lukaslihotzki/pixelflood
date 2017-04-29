@@ -18,9 +18,9 @@ class Canvas
 			delete data;
 		}
 
-		uint32_t* const data;
 		const unsigned width;
 		const unsigned height;
+		uint32_t* const data;
 };
 
 #endif

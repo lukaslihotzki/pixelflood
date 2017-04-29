@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 2.6)
 
 project(pixelflood)
 
+if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
+endif()
+
 if ("${CMAKE_SYSTEM}" MATCHES "Linux")
 set(CAN_USE_EPOLL YES)
 else()

@@ -20,7 +20,7 @@ int main() try
 	   << "  tcp 1234\n"
 	   << "payload:\n"
 	   << "  PX $x $y $color\\n";
-	writeText(canvas, 0, 0, os.str());
+	writeText(canvas, os.str());
 
 	NetworkThread networkThread(canvas, 1234);
 

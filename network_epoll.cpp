@@ -58,7 +58,7 @@ NetworkThread::NetworkThread(Canvas& canvas, uint16_t port)
 	struct epoll_event evee = { .events = EPOLLIN, .data = { .fd = evfd } };
 	epoll_ctl(epollfd, EPOLL_CTL_ADD, evfd, &evee);
 
-	struct sockaddr_in6 destAddr = {0};
+	struct sockaddr_in6 destAddr = {};
 	destAddr.sin6_family = AF_INET6;
 	destAddr.sin6_port = htons(port);
 	serverfd = socket(AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, IPPROTO_TCP);
@@ -157,15 +157,15 @@ void NetworkThread::work()
 								s = 5;
 								while (dc < 8) {
 									if (*c >= '0' && *c <= '9') {
-										col = (col << 4) | *c - '0';
+										col = (col << 4) | (*c - '0');
 										dc++;
 										c++;
 									} else if (*c >= 'a' && *c <= 'f') {
-										col = (col << 4) | *c - 'a' + 0xA;
+										col = (col << 4) | (*c - 'a' + 0xA);
 										dc++;
 										c++;
 									} else if (*c >= 'A' && *c <= 'F') {
-										col = (col << 4) | *c - 'A' + 0xA;
+										col = (col << 4) | (*c - 'A' + 0xA);
 										dc++;
 										c++;
 									} else {

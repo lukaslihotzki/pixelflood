@@ -4,7 +4,6 @@
 #include "canvas.hpp"
 #include <atomic>
 #include <thread>
-#include <vector>
 
 class NetworkThread
 {

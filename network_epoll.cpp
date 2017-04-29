@@ -80,7 +80,9 @@ NetworkThread::NetworkThread(Canvas& canvas, uint16_t port)
 		errno_exit("listen");
 
 	struct epoll_event serveree = { .events = EPOLLIN | MODE, .data = { .fd = serverfd } };
-	epoll_ctl(epollfd, EPOLL_CTL_ADD, serverfd, &serveree);
+	err = epoll_ctl(epollfd, EPOLL_CTL_ADD, serverfd, &serveree);
+	if (err < 0)
+		errno_exit("epoll_ctl add server");
 
 	thread = std::thread(&NetworkThread::work, this);
 }
@@ -112,7 +114,9 @@ void NetworkThread::work()
 				READ ((clientfd = accept4(serverfd, nullptr, nullptr, SOCK_NONBLOCK)) >= 0) {
 					state[clientfd] = 0;
 					struct epoll_event ee = { .events = EPOLLIN | MODE, .data = { .fd = clientfd } };
-					epoll_ctl(epollfd, EPOLL_CTL_ADD, clientfd, &ee);
+					int err = epoll_ctl(epollfd, EPOLL_CTL_ADD, clientfd, &ee);
+					if (err < 0)
+						errno_exit("epoll_ctl add client");
 				}
 			} else {
 				char buf[32768];

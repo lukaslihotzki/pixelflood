@@ -121,25 +121,28 @@ void server::accept()
 {
 	acceptor.async_accept(next_client, [this] (boost::system::error_code err) {
 		if (!err) {
-			connections.emplace_front(std::move(next_client), canvas);
-			connections.front().destroy = [this, it = connections.begin()] () {
-				connections.erase(it);
-			};
+			connection* c = new connection(std::move(next_client), canvas);
+			c->destroy = [c] () { delete c; };
 		}
 		accept();
 	});
 }
 
-NetworkHandler::NetworkHandler(Canvas& canvas, uint16_t port, unsigned)
+NetworkHandler::NetworkHandler(Canvas& canvas, uint16_t port, unsigned threadCount)
     : s(io_service, {boost::asio::ip::address_v6::any(), port}, canvas)
-    , thread(&NetworkHandler::work, this)
 {
+	for (unsigned i = 0; i < threadCount; i++) {
+		threads.emplace(&NetworkHandler::work, this);
+	}
 }
 
 NetworkHandler::~NetworkHandler()
 {
 	io_service.stop();
-	thread.join();
+	while (!threads.empty()) {
+		threads.top().join();
+		threads.pop();
+	}
 }
 
 void NetworkHandler::work()

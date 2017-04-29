@@ -5,6 +5,7 @@
 #include <boost/asio.hpp>
 #include <list>
 #include <thread>
+#include <stack>
 
 class connection
 {
@@ -27,20 +28,19 @@ class server
 		void accept();
 		boost::asio::ip::tcp::acceptor acceptor;
 		boost::asio::ip::tcp::socket next_client;
-		std::list<connection> connections;
 		Canvas& canvas;
 };
 
 class NetworkHandler
 {
 	public:
-		NetworkHandler(Canvas& canvas, uint16_t port, unsigned threads = 1);
+		NetworkHandler(Canvas& canvas, uint16_t port, unsigned threadCount = 1);
 		~NetworkHandler();
 	private:
 		void work();
 		boost::asio::io_service io_service;
 		server s;
-		std::thread thread;
+		std::stack<std::thread> threads;
 };
 
 #endif

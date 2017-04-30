@@ -19,7 +19,7 @@ set(USE_ONESHOT_EPOLL ${CAN_USE_EPOLL} CACHE BOOL "Use oneshot epoll (required f
 find_package(Threads)
 include(FindFreetype)
 
-set(my_SOURCES main.cpp text.cpp canvas.hpp display_glfw.hpp display_glfw.cpp)
+set(my_SOURCES main.cpp text.cpp text.hpp canvas.hpp display_glfw.hpp display_glfw.cpp)
 set(my_LIBRARIES glfw GL ${CMAKE_THREAD_LIBS_INIT} ${FREETYPE_LIBRARIES})
 
 if (USE_EPOLL)

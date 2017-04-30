@@ -52,6 +52,10 @@ void writeText(const Canvas& canvas, std::string text)
 
 		for (unsigned i = 0; i < slot->bitmap.rows; i++) {
 			for (unsigned j = 0; j < slot->bitmap.width; j++) {
+				if ((j + slot->bitmap_left + pen.x / 64) >= canvas.width - 1
+					|| (i + pen.y / 64 - slot->bitmap_top) >= canvas.height - 1) {
+					continue;
+				}
 				unsigned char c = slot->bitmap.buffer[slot->bitmap.pitch * i + j];
 				canvas.data[canvas.width * (i + pen.y / 64 - slot->bitmap_top) + j + slot->bitmap_left + pen.x / 64] = c << 24 | c << 16 | c << 8;
 			}

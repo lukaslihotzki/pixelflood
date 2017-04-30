@@ -36,6 +36,38 @@ else()
     set(my_LIBRARIES ${my_LIBRARIES} boost_system)
 endif()
 
+
+# Run simple cmake converter to put font files into the data segment
+# like https://github.com/wjakob/nanogui/blob/f9c3b7a/CMakeLists.txt
+
+# Glob up resource files
+file(GLOB resources "${CMAKE_CURRENT_SOURCE_DIR}/*.ttf")
+
+# Concatenate resource files into a comma separated string
+string (REGEX REPLACE "([^\\]|^);" "\\1," resources_string "${resources}")
+string (REGEX REPLACE "[\\](.)" "\\1" resources_string "${resources_string}")
+
+# Create command line for running bin2c cmake script
+set(bin2c_cmdline
+  -DOUTPUT_C=resources.cpp
+  -DOUTPUT_H=resources.h
+  "-DINPUT_FILES=${resources_string}"
+  -P "${CMAKE_CURRENT_SOURCE_DIR}/bin2c.cmake")
+
+# Run bin2c on resource files
+add_custom_command(
+  OUTPUT resources.cpp resources.h
+  COMMAND ${CMAKE_COMMAND} ARGS ${bin2c_cmdline}
+  DEPENDS ${resources}
+  COMMENT "Running bin2c"
+  PRE_BUILD VERBATIM)
+
+set(my_SOURCES ${my_SOURCES} resources.cpp)
+
+# Needed to generated files
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+
 include_directories(${FREETYPE_INCLUDE_DIRS})
 add_executable(pixelflood ${my_SOURCES})
 target_link_libraries(pixelflood ${my_LIBRARIES})

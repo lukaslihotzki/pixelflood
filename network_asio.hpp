@@ -10,7 +10,7 @@
 class connection
 {
 	public:
-		connection(boost::asio::ip::tcp::socket&& socket, Canvas& canvas);
+		connection(boost::asio::ip::tcp::socket&& socket, Canvas& canvas, boost::asio::const_buffers_1& sizeStrBuf);
 		std::function<void()> destroy;
 	private:
 		void read();
@@ -18,6 +18,8 @@ class connection
 		Canvas& canvas;
 		char buf[32768];
 		int o;
+		boost::asio::const_buffers_1& sizeStrBuf;
+		bool pending;
 };
 
 class server
@@ -28,6 +30,8 @@ class server
 		void accept();
 		boost::asio::ip::tcp::acceptor acceptor;
 		boost::asio::ip::tcp::socket next_client;
+		std::string sizeStr;
+		boost::asio::const_buffers_1 sizeStrBuf;
 		Canvas& canvas;
 };
 

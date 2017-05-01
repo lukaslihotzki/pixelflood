@@ -41,10 +41,12 @@
 	c <<= 4; \
 	HEX_DIGIT(c);
 
-connection::connection(boost::asio::ip::tcp::socket&& socket, Canvas& canvas)
+connection::connection(boost::asio::ip::tcp::socket&& socket, Canvas& canvas, boost::asio::const_buffers_1& sizeStrBuf)
     : socket(std::move(socket))
     , canvas(canvas)
     , o(0)
+	, sizeStrBuf(sizeStrBuf)
+	, pending(false)
 {
 	read();
 }
@@ -65,26 +67,49 @@ void connection::read()
 				char* it = buf;
 				char* end = buf + ro;
 				while (it != end) {
-					EXPECT_CH('P');
-					EXPECT_CH('X');
-					EXPECT_CH(' ');
-					DEC_NUM(x);
-					EXPECT_CH(' ');
-					DEC_NUM(y);
-					EXPECT_CH(' ');
-					HEX_BYTE(r);
-					HEX_BYTE(g);
-					HEX_BYTE(b);
-					OPTIONAL_CH('\r');
-					EXPECT_CH('\n');
-					if (x < canvas.width && y < canvas.height) {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-						canvas.data[canvas.width * y + x] = r << 24 | g << 16 | b << 8;
-#elif __BYTE_ORDER == __BIG_ENDIAN
-						canvas.data[canvas.width * y + x] = r << 0 | g << 8 | b << 16;
-#else
-#error Unknown endianness
-#endif
+					if (*it == 'P') {
+						it++;
+						EXPECT_CH('X');
+						EXPECT_CH(' ');
+						DEC_NUM(x);
+						EXPECT_CH(' ');
+						DEC_NUM(y);
+						EXPECT_CH(' ');
+						HEX_BYTE(r);
+						HEX_BYTE(g);
+						HEX_BYTE(b);
+						OPTIONAL_CH('\r');
+						EXPECT_CH('\n');
+						if (x < canvas.width && y < canvas.height) {
+	#if __BYTE_ORDER == __LITTLE_ENDIAN
+							canvas.data[canvas.width * y + x] = r << 24 | g << 16 | b << 8;
+	#elif __BYTE_ORDER == __BIG_ENDIAN
+							canvas.data[canvas.width * y + x] = r << 0 | g << 8 | b << 16;
+	#else
+	#error Unknown endianness
+	#endif
+						}
+					} else if (*it == 'S') {
+						it++;
+						EXPECT_CH('I');
+						EXPECT_CH('Z');
+						EXPECT_CH('E');
+						OPTIONAL_CH('\r');
+						EXPECT_CH('\n');
+						if (pending) {
+							goto err;
+						}
+
+						pending = true;
+						boost::asio::async_write(socket, sizeStrBuf, [this] (boost::system::error_code err, size_t) {
+							if (err) {
+								socket.close();
+								destroy();
+							}
+							pending = false;
+						});
+					} else {
+						goto err;
 					}
 				}
 				goto ok;
@@ -112,6 +137,12 @@ void connection::read()
 server::server(boost::asio::io_service& io_service, boost::asio::ip::tcp::endpoint endpoint, Canvas& canvas)
     : acceptor(io_service, endpoint)
     , next_client(io_service)
+	, sizeStr([&canvas] () {
+		std::ostringstream os;
+		os << "SIZE " << canvas.width << ' ' << canvas.height << '\n';
+		return os.str();
+	} ())
+	, sizeStrBuf(boost::asio::buffer(sizeStr))
     , canvas(canvas)
 {
 	accept();
@@ -121,7 +152,7 @@ void server::accept()
 {
 	acceptor.async_accept(next_client, [this] (boost::system::error_code err) {
 		if (!err) {
-			connection* c = new connection(std::move(next_client), canvas);
+			connection* c = new connection(std::move(next_client), canvas, sizeStrBuf);
 			c->destroy = [c] () { delete c; };
 		}
 		accept();
@@ -129,7 +160,7 @@ void server::accept()
 }
 
 NetworkHandler::NetworkHandler(Canvas& canvas, uint16_t port, unsigned threadCount)
-    : s(io_service, {boost::asio::ip::address_v6::any(), port}, canvas)
+	: s(io_service, {boost::asio::ip::address_v6::any(), port}, canvas)
 {
 	for (unsigned i = 0; i < threadCount; i++) {
 		threads.emplace(&NetworkHandler::work, this);

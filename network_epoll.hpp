@@ -17,6 +17,7 @@ class NetworkHandler
 		Canvas& canvas;
 		int epollfd, evfd, serverfd;
 		uint64_t* state;
+		std::string sizeStr;
 };
 
 #endif

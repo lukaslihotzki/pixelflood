@@ -13,6 +13,8 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/eventfd.h>
+#include <sys/signal.h>
+#include <linux/sockios.h>
 #include <netinet/in.h>
 #include <string.h>
 #include <assert.h>
@@ -47,8 +49,15 @@ static void errno_exit(const char *s)
 }
 
 NetworkHandler::NetworkHandler(Canvas& canvas, uint16_t port, unsigned threadCount)
-    : canvas(canvas)
+	: canvas(canvas)
+	, sizeStr([&canvas] () {
+		std::ostringstream os;
+		os << "SIZE " << canvas.width << ' ' << canvas.height << '\n';
+		return os.str();
+	} ())
 {
+	signal(SIGPIPE, SIG_IGN);
+
 	int fd_max;
 	{
 		std::ifstream fd_max_stream("/proc/sys/fs/file-max");
@@ -117,6 +126,8 @@ NetworkHandler::~NetworkHandler()
 void NetworkHandler::work()
 {
 	const unsigned xmax = canvas.width, ymax = canvas.height;
+	const char* sizeData = sizeStr.data();
+	int sizeLen = sizeStr.length();
 
 	for (;;) {
 		struct epoll_event event[MAX_EVENTS];
@@ -155,67 +166,103 @@ void NetworkHandler::work()
 					unsigned comb = (ss >> 58) & 0x3F;
 					unsigned s = comb / 9;
 					unsigned dc = comb % 9;
+					if (!s) {
+						s = dc;
+						dc = 0;
+					} else {
+						s += 2;
+					}
 					switch (s) {
-						for (;;) {
-						    case 0:
-								if (*c == 'P') c++; else { s = 0; break; }
-							case 1:
-								if (*c == 'X') c++; else { s = 1; break; }
-							case 2:
-								if (*c == ' ') c++; else { s = 2; break; }
-							case 3:
-								while (*c >= '0' && *c <= '9' && dc < 4) {
-									x = 10 * x + (*c - '0');
-									if (x >= xmax)
-										break;
-									dc++;
-									c++;
-								}
-								if (dc && *c == ' ') { dc = 0; c++; } else { s = 3; break; }
-							case 4:
-								while (*c >= '0' && *c <= '9' && dc < 4) {
-									y = 10 * y + (*c - '0');
-									if (y >= ymax)
-										break;
-									dc++;
-									c++;
-								}
-								if (dc && *c == ' ') { dc = 0; c++; } else { s = 4; break; }
-							case 5:
-								s = 5;
-								while (dc < 8) {
-									if (*c >= '0' && *c <= '9') {
-										col = (col << 4) | (*c - '0');
-										dc++;
-										c++;
-									} else if (*c >= 'a' && *c <= 'f') {
-										col = (col << 4) | (*c - 'a' + 0xA);
-										dc++;
-										c++;
-									} else if (*c >= 'A' && *c <= 'F') {
-										col = (col << 4) | (*c - 'A' + 0xA);
-										dc++;
-										c++;
-									} else {
-										break;
-									}
-								}
-								if (*c == '\r') {
-									c++;
-									s = 6;
-								}
-							case 6:
-								if (*c == '\n' && (dc == 6 || dc == 8)) {
-									c++;
-									if (dc == 6) {
-										col <<= 8;
-									}
-									canvas.data[y * canvas.width + x] = col;
-									s = x = y = col = dc = 0;
+						case0:
+						case 0:
+							if (*c == 'P') c++; else if (*c == 'S') { dc = 0; s = 7; c++; goto case7; } else { s = 0; break; }
+						case 1:
+							if (*c == 'X') c++; else { s = 1; break; }
+						case 2:
+							if (*c == ' ') c++; else { s = 2; break; }
+						case 3:
+							while (*c >= '0' && *c <= '9' && dc < 4) {
+								x = 10 * x + (*c - '0');
+								if (x >= xmax)
+									break;
+								dc++;
+								c++;
+							}
+							if (dc && *c == ' ') { dc = 0; c++; } else { s = 3; break; }
+						case 4:
+							while (*c >= '0' && *c <= '9' && dc < 4) {
+								y = 10 * y + (*c - '0');
+								if (y >= ymax)
+									break;
+								dc++;
+								c++;
+							}
+							if (dc && *c == ' ') { dc = 0; c++; } else { s = 4; break; }
+						case 5:
+							s = 5;
+							while (dc < 8) {
+								if (*c >= '0' && *c <= '9') {
+									col = (col << 4) | (*c - '0');
+								} else if (*c >= 'a' && *c <= 'f') {
+									col = (col << 4) | (*c - 'a' + 0xA);
+								} else if (*c >= 'A' && *c <= 'F') {
+									col = (col << 4) | (*c - 'A' + 0xA);
 								} else {
 									break;
 								}
-						}
+								dc++;
+								c++;
+							}
+							if (*c == '\r') {
+								c++;
+								s = 6;
+							}
+						case 6:
+							if (*c == '\n' && (dc == 6 || dc == 8)) {
+								c++;
+								if (dc == 6) {
+									col <<= 8;
+								}
+								canvas.data[y * canvas.width + x] = col;
+								s = x = y = col = dc = 0;
+								goto case0;
+							} else {
+								break;
+							}
+						case7:
+						case 7:
+							switch (dc) {
+								case 0:
+									if (*c == 'I') c++; else { dc = 0; break; }
+								case 1:
+									if (*c == 'Z') c++; else { dc = 1; break; }
+								case 2:
+									if (*c == 'E') c++; else { dc = 2; break; }
+								case 3:
+									if (*c != '\n') {
+										if (*c == '\r') c++; else { dc = 3; break; }
+									}
+								case 4:
+									if (*c == '\n') {
+										int pending;
+										int err = ioctl(fd, SIOCOUTQ, &pending);
+										if (err || pending) {
+											break;
+										}
+										if (write(fd, sizeData, sizeLen) != sizeLen) {
+											break;
+										}
+										s = x = y = col = dc = 0;
+										c++;
+										goto case0;
+									} else { dc = 4; break; }
+							}
+					}
+					if (s <= 2) {
+						dc = s;
+						s = 0;
+					} else {
+						s -= 2;
 					}
 					if (c == buf + size) {
 						state[fd] = ((col & 0xFFFFFFFFL) << 0) | ((x & 0x1FFFL) << 32) | ((y & 0x1FFFL) << 45) | (((s * 9 + dc) & 0x3FL) << 58);

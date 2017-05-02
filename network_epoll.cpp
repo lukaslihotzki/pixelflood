@@ -221,9 +221,10 @@ void NetworkHandler::work()
 							if (*c == '\n' && (dc == 6 || dc == 8)) {
 								c++;
 								if (dc == 6) {
-									col <<= 8;
+									canvas.set(x, y, col << 8);
+								} else {
+									canvas.blend(x, y, col);
 								}
-								canvas.data[y * canvas.width + x] = col;
 								s = x = y = col = dc = 0;
 								goto case0;
 							} else {

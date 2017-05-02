@@ -72,22 +72,27 @@ void connection::read()
 						EXPECT_CH('X');
 						EXPECT_CH(' ');
 						DEC_NUM(x);
+						if (x >= canvas.width) {
+							goto err;
+						}
 						EXPECT_CH(' ');
 						DEC_NUM(y);
+						if (y >= canvas.height) {
+							goto err;
+						}
 						EXPECT_CH(' ');
 						HEX_BYTE(r);
 						HEX_BYTE(g);
 						HEX_BYTE(b);
-						OPTIONAL_CH('\r');
-						EXPECT_CH('\n');
-						if (x < canvas.width && y < canvas.height) {
-	#if __BYTE_ORDER == __LITTLE_ENDIAN
-							canvas.data[canvas.width * y + x] = r << 24 | g << 16 | b << 8;
-	#elif __BYTE_ORDER == __BIG_ENDIAN
-							canvas.data[canvas.width * y + x] = r << 0 | g << 8 | b << 16;
-	#else
-	#error Unknown endianness
-	#endif
+						if (it != end && *it < 32) {
+							OPTIONAL_CH('\r');
+							EXPECT_CH('\n');
+							canvas.set(x, y, r << 24 | g << 16 | b << 8);
+						} else {
+							HEX_BYTE(a);
+							OPTIONAL_CH('\r');
+							EXPECT_CH('\n');
+							canvas.blend(x, y, r << 24 | g << 16 | b << 8 | a);
 						}
 					} else if (*it == 'S') {
 						it++;

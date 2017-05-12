@@ -6,6 +6,10 @@ if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 endif()
 
+if (WIN32)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mwindows") # no console window
+endif()
+
 if ("${CMAKE_SYSTEM}" MATCHES "Linux")
 set(CAN_USE_EPOLL YES)
 else()

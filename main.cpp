@@ -34,9 +34,10 @@ int main(int, char** argv) try
 
 #ifdef USE_FREETYPE
 	std::ostringstream os;
-	os << "ip:\n"
-	   << exec("(ip addr | grep -Po '(?<=inet )[0-9]*\\.[0-9]*\\.[0-9]*\\.[0-9]*' | grep -v '^127\\.'; ip addr | grep -Po '(?<=inet6 )2[0-9a-f:]*') | sed 's/^/  /'")
-	   << "port:\n"
+	os << "ip:\n";
+	for (std::string ip : getIpAddresses())
+		os << "  " << ip << "\n";
+	os << "port:\n"
 	   << "  tcp " << opt.port << "\n"
 	   << "payload:\n"
 	   << "  PX $x $y $color\\n";

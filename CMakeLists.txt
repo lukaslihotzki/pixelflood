@@ -2,92 +2,125 @@ cmake_minimum_required(VERSION 2.6)
 
 project(pixelflood)
 
-if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
-endif()
+include(CMakeDependentOption)
 
-if (WIN32)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mwindows") # no console window
+include(FindFreetype)
+find_package(Threads REQUIRED)
+find_package(OpenGL)
+find_package(glfw3 3.2)
+find_package(GLEW)
+find_package(Boost COMPONENTS system)
+
+list(APPEND my_SOURCES main.cpp options.cpp options.hpp)
+list(APPEND my_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
+
+if (glfw3_FOUND)
+    list(APPEND DISPLAY_OPTIONS GLFW)
 endif()
 
 if ("${CMAKE_SYSTEM}" MATCHES "Linux")
-set(CAN_USE_EPOLL YES)
-else()
-set(CAN_USE_EPOLL NO)
+    list(APPEND DISPLAY_OPTIONS FBDEV)
+    include(FindPkgConfig)
+
+    list(APPEND NETWORK_OPTIONS EPOLL)
 endif()
 
-set(USE_EPOLL ${CAN_USE_EPOLL} CACHE BOOL "Use epoll instead of asio (only linux)")
-set(USE_EDGE_TRIGGERED_EPOLL NO CACHE BOOL "Use edge triggered epoll")
-set(USE_ONESHOT_EPOLL ${CAN_USE_EPOLL} CACHE BOOL "Use oneshot epoll (required for multithreading)")
-
-find_package(Threads)
-include(FindFreetype)
-
-find_package(glfw3 3.2 REQUIRED)
-find_package(OpenGL REQUIRED)
-
-set(my_SOURCES main.cpp options.cpp options.hpp text.cpp text.hpp canvas.hpp display_glfw.hpp display_glfw.cpp)
-set(my_LIBRARIES ${OPENGL_gl_LIBRARY} glfw ${GLEW_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${FREETYPE_LIBRARIES})
-
-find_package(GLEW)
-if (GLEW_FOUND)
-    add_definitions(-DUSE_GLEW)
-    set(my_LIBRARIES ${my_LIBRARIES} ${GLEW_LIBRARIES})
-    include_directories(${GLEW_INCLUDE_DIRS})
+if (Boost_FOUND)
+    list(APPEND NETWORK_OPTIONS BOOST_ASIO)
 endif()
 
-if (USE_EPOLL)
-    set(my_SOURCES ${my_SOURCES} network_epoll.hpp network_epoll.cpp)
+list(GET DISPLAY_OPTIONS 0 DEFAULT_DISPLAY)
+list(GET NETWORK_OPTIONS 0 DEFAULT_NETWORK)
+
+set(DISPLAY ${DEFAULT_DISPLAY} CACHE STRING "Library to display buffer")
+set_property(CACHE DISPLAY PROPERTY STRINGS ${DISPLAY_OPTIONS})
+
+set(NETWORK ${DEFAULT_NETWORK} CACHE STRING "API to run server")
+set_property(CACHE NETWORK PROPERTY STRINGS ${NETWORK_OPTIONS})
+
+cmake_dependent_option(USE_FREETYPE "Use FreeType to draw text" ON "FREETYPE_FOUND" OFF)
+
+if (NETWORK MATCHES "BOOST_ASIO")
+    #add_definitions(-DUSE_BOOST_ASIO)
+    list(APPEND my_INCLUDES ${Boost_INCLUDE_DIRS})
+    list(APPEND my_LIBRARIES ${Boost_LIBRARIES})
+    list(APPEND my_SOURCES network_asio.cpp network_asio.hpp)
+endif()
+
+if (NETWORK MATCHES "EPOLL")
+    set(USE_EPOLL ON)
     add_definitions(-DUSE_NETWORK_EPOLL)
-    if (USE_EDGE_TRIGGERED_EPOLL)
-        add_definitions(-DUSE_EDGE_TRIGGERED_EPOLL)
-    endif()
-    if (USE_ONESHOT_EPOLL)
-        add_definitions(-DUSE_ONESHOT_EPOLL)
-    endif()
-else()
-    set(my_SOURCES ${my_SOURCES} network_asio.hpp network_asio.cpp)
-    find_package(Boost REQUIRED COMPONENTS system) # asio
-    include_directories(${Boost_INCLUDE_DIRS})
-    set(my_LIBRARIES ${my_LIBRARIES} ${Boost_LIBRARIES})
-
-    if (WIN32)
-        set(my_LIBRARIES ${my_LIBRARIES} ws2_32 mswsock) # asio
-    endif()
+    list(APPEND my_SOURCES network_epoll.cpp network_epoll.hpp)
 endif()
 
+cmake_dependent_option(USE_EDGE_TRIGGERED_EPOLL "Use edge triggered epoll" OFF "USE_EPOLL" OFF)
+if (USE_EDGE_TRIGGERED_EPOLL)
+    add_definitions(-DUSE_EDGE_TRIGGERED_EPOLL)
+endif()
 
-# Run simple cmake converter to put font files into the data segment
-# like https://github.com/wjakob/nanogui/blob/f9c3b7a/CMakeLists.txt
+cmake_dependent_option(USE_ONESHOT_EPOLL "Use oneshot epoll (required for multithreading)" ON "USE_EPOLL" OFF)
+if (USE_ONESHOT_EPOLL)
+    add_definitions(-DUSE_ONESHOT_EPOLL)
+endif()
 
-# Glob up resource files
-file(GLOB resources "${CMAKE_CURRENT_SOURCE_DIR}/*.ttf")
+if (DISPLAY MATCHES "GLFW")
+    set(USE_GLFW ON)
+    add_definitions(-DUSE_GLFW)
+    list(APPEND my_INCLUDES ${GLFW_INCLUDE_DIR} ${OPENGL_INCLUDE_DIR})
+    list(APPEND my_LIBRARIES glfw ${OPENGL_gl_LIBRARY})
+    list(APPEND my_SOURCES display_glfw.cpp display_glfw.hpp)
+endif()
 
-# Concatenate resource files into a comma separated string
-string (REGEX REPLACE "([^\\]|^);" "\\1," resources_string "${resources}")
-string (REGEX REPLACE "[\\](.)" "\\1" resources_string "${resources_string}")
+cmake_dependent_option(USE_GLEW "Use GLEW to load extension for zero copy" ON "USE_GLFW; GLEW_FOUND" OFF)
+if (USE_GLEW)
+    add_definitions(-DUSE_GLEW)
+    list(APPEND my_INCLUDES ${GLEW_INCLUDE_DIR})
+    list(APPEND my_LIBRARIES glfw ${GLEW_LIBRARIES})
+endif()
 
-# Create command line for running bin2c cmake script
-set(bin2c_cmdline
-  -DOUTPUT_C=resources.cpp
-  -DOUTPUT_H=resources.h
-  "-DINPUT_FILES=${resources_string}"
-  -P "${CMAKE_CURRENT_SOURCE_DIR}/bin2c.cmake")
+if (DISPLAY MATCHES "FBDEV")
+    add_definitions(-DUSE_FBDEV)
+    list(APPEND my_SOURCES display_fbdev.cpp display_fbdev.hpp)
+endif()
 
-# Run bin2c on resource files
-add_custom_command(
-  OUTPUT resources.cpp resources.h
-  COMMAND ${CMAKE_COMMAND} ARGS ${bin2c_cmdline}
-  DEPENDS ${resources}
-  COMMENT "Running bin2c"
-  PRE_BUILD VERBATIM)
+if (USE_FREETYPE)
+    # like https://github.com/wjakob/nanogui/blob/f9c3b7a/CMakeLists.txt
 
-set(my_SOURCES ${my_SOURCES} resources.cpp)
+    file(GLOB resources "${CMAKE_CURRENT_SOURCE_DIR}/*.ttf")
+    string (REGEX REPLACE "([^\\]|^);" "\\1," resources_string "${resources}")
+    string (REGEX REPLACE "[\\](.)" "\\1" resources_string "${resources_string}")
 
-# Needed to generated files
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+    set(bin2c_cmdline
+      -DOUTPUT_C=resources.cpp
+      -DOUTPUT_H=resources.h
+      "-DINPUT_FILES=${resources_string}"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/bin2c.cmake")
 
+    add_custom_command(
+      OUTPUT resources.cpp resources.h
+      COMMAND ${CMAKE_COMMAND} ARGS ${bin2c_cmdline}
+      DEPENDS ${resources}
+      COMMENT "Running bin2c"
+      PRE_BUILD VERBATIM)
 
-include_directories(${FREETYPE_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIR} ${GLFW_INCLUDE_DIR})
+    list(APPEND my_SOURCES resources.cpp)
+    list(APPEND my_INCLUDES ${CMAKE_CURRENT_BINARY_DIR})
+
+    add_definitions(-DUSE_FREETYPE)
+    list(APPEND my_INCLUDES ${FREETYPE_INCLUDE_DIRS})
+    list(APPEND my_LIBRARIES ${FREETYPE_LIBRARIES})
+    list(APPEND my_SOURCES text.cpp text.hpp)
+endif()
+
+if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
+endif()
+
+if (WIN32)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mwindows") # no console window
+    set(my_LIBRARIES ${my_LIBRARIES} ws2_32 mswsock) # networking
+endif()
+
+include_directories(${my_INCLUDES})
 add_executable(pixelflood ${my_SOURCES})
 target_link_libraries(pixelflood ${my_LIBRARIES})

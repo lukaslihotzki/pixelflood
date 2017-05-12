@@ -12,6 +12,7 @@ class Display
 		void operator()();
 	private:
 		struct GLFWwindow* window;
+		uint32_t* texImageBuf;
 };
 
 #endif

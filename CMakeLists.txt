@@ -27,7 +27,14 @@ find_package(glfw3 3.2 REQUIRED)
 find_package(OpenGL REQUIRED)
 
 set(my_SOURCES main.cpp options.cpp options.hpp text.cpp text.hpp canvas.hpp display_glfw.hpp display_glfw.cpp)
-set(my_LIBRARIES ${OPENGL_gl_LIBRARY} glfw ${CMAKE_THREAD_LIBS_INIT} ${FREETYPE_LIBRARIES})
+set(my_LIBRARIES ${OPENGL_gl_LIBRARY} glfw ${GLEW_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${FREETYPE_LIBRARIES})
+
+find_package(GLEW)
+if (GLEW_FOUND)
+    add_definitions(-DUSE_GLEW)
+    set(my_LIBRARIES ${my_LIBRARIES} ${GLEW_LIBRARIES})
+    include_directories(${GLEW_INCLUDE_DIRS})
+endif()
 
 if (USE_EPOLL)
     set(my_SOURCES ${my_SOURCES} network_epoll.hpp network_epoll.cpp)

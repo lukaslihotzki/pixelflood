@@ -1,4 +1,9 @@
 #include "display_glfw.hpp"
+
+#ifdef USE_GLEW
+#include <GL/glew.h>
+#endif
+
 #include <stdexcept>
 #include <GLFW/glfw3.h>
 
@@ -30,7 +35,22 @@ Display::Display(int width, int height)
 	canvas.width = width;
 	canvas.height = height;
 
-	canvas.data = new uint32_t[width * height];
+	canvas.data = nullptr;
+
+#ifdef USE_GLEW
+	glewInit();
+	if (GL_ARB_buffer_storage) {
+		GLuint buf;
+		glGenBuffers(1, &buf);
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buf);
+		GLuint size = width * height * sizeof(uint32_t);
+		GLuint flags = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+		glBufferStorage(GL_PIXEL_UNPACK_BUFFER, size, nullptr, flags | GL_CLIENT_STORAGE_BIT);
+		canvas.data = (uint32_t*)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, size, flags);
+		texImageBuf = nullptr;
+	} else
+#endif
+		texImageBuf = canvas.data = new uint32_t[width * height];
 
 	GLuint tex;
 	glGenTextures(1, &tex);
@@ -48,12 +68,16 @@ Display::Display(int width, int height)
 Display::~Display()
 {
 	glfwDestroyWindow(window);
+
+	if (texImageBuf) {
+		delete texImageBuf;
+	}
 }
 
 void Display::operator()()
 {
 	do {
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, canvas.width, canvas.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, canvas.data);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, canvas.width, canvas.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texImageBuf);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, sizeof(vertices) / sizeof(vertices[0]));
 		glfwSwapBuffers(window);
 		glfwPollEvents();

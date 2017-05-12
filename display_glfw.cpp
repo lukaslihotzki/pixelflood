@@ -39,7 +39,7 @@ void displayCanvas(Canvas& canvas)
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
 	do {
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, canvas.width, canvas.height, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, canvas.data);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, canvas.width, canvas.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, canvas.data);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, sizeof(vertices) / sizeof(vertices[0]));
 		glfwSwapBuffers(window);
 		glfwPollEvents();

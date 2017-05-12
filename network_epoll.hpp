@@ -15,7 +15,7 @@ class NetworkHandler
 		void work();
 		std::stack<std::thread> threads;
 		Canvas& canvas;
-		int epollfd, evfd, serverfd;
+		int epollfd, evfd, serverfd, fd_max;
 		uint64_t* state;
 		std::string sizeStr;
 };

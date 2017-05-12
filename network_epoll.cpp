@@ -41,6 +41,9 @@
 #define MAX_EVENTS 16
 #endif
 
+#define INITIAL_STATE 0
+#define CLOSED_STATE 1 // invalid because comb = 0 => col = 0
+
 static void errno_exit(const char *s)
 {
 	std::ostringstream os;
@@ -58,7 +61,6 @@ NetworkHandler::NetworkHandler(Canvas& canvas, uint16_t port, unsigned threadCou
 {
 	signal(SIGPIPE, SIG_IGN);
 
-	int fd_max;
 	{
 		std::ifstream fd_max_stream("/proc/sys/fs/file-max");
 		if (!(fd_max_stream >> fd_max)) {
@@ -66,6 +68,7 @@ NetworkHandler::NetworkHandler(Canvas& canvas, uint16_t port, unsigned threadCou
 		}
 	}
 	state = new uint64_t[fd_max + 1];
+	std::fill_n(state, fd_max + 1, CLOSED_STATE);
 
 	epollfd = epoll_create1(0);
 	if (epollfd == -1)
@@ -120,6 +123,15 @@ NetworkHandler::~NetworkHandler()
 	}
 	uint64_t devnull;
 	read(evfd, &devnull, sizeof devnull);
+
+	close(epollfd);
+	close(evfd);
+	close(serverfd);
+	for (int i = 0; i < fd_max; i++) {
+		if (state[i] != CLOSED_STATE) {
+			close(i);
+		}
+	}
 	delete[] state;
 }
 
@@ -140,7 +152,7 @@ void NetworkHandler::work()
 			} else if (fd == serverfd) {
 				int clientfd;
 				READ ((clientfd = accept4(serverfd, nullptr, nullptr, SOCK_NONBLOCK)) >= 0) {
-					state[clientfd] = 0;
+					state[clientfd] = INITIAL_STATE;
 					struct epoll_event ee = { .events = EPOLLIN | MODE, .data = { .fd = clientfd } };
 					int err;
 					err = epoll_ctl(epollfd, EPOLL_CTL_ADD, clientfd, &ee);
@@ -278,6 +290,7 @@ void NetworkHandler::work()
 					}
 				}
 				if (size == 0) {
+					state[fd] = CLOSED_STATE;
 					close(fd);
 #ifdef USE_ONESHOT_EPOLL
 				} else {

@@ -31,6 +31,7 @@ int main(int, char** argv) try
 	}
 
 	Display display(opt.buffer.x, opt.buffer.y);
+	std::fill_n(display.canvas.data, display.canvas.width * display.canvas.height, 0);
 
 #ifdef USE_FREETYPE
 	std::ostringstream os;

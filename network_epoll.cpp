@@ -266,7 +266,12 @@ void NetworkHandler::work()
 						s -= 2;
 					}
 					if (c == buf + size) {
-						state[fd] = ((col & 0xFFFFFFFFL) << 0) | ((x & 0x1FFFL) << 32) | ((y & 0x1FFFL) << 45) | (((s * 9 + dc) & 0x3FL) << 58);
+						comb = s * 9 + dc;
+						assert(!(col & ~0xFFFFFFFF));
+						assert(!(x & ~0x1FFF));
+						assert(!(y & ~0x1FFF));
+						assert(!(comb & ~0x3F));
+						state[fd] = col | (uint64_t(x) << 32) | (uint64_t(y) << 45) | (uint64_t(comb) << 58);
 					} else {
 						size = 0;
 						BREAK_IF_ET;

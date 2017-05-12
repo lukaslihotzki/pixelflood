@@ -15,7 +15,7 @@ class Canvas
 
 		~Canvas()
 		{
-			delete data;
+			delete[] data;
 		}
 
 		inline void set(int x, int y, uint32_t rgbx)

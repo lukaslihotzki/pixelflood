@@ -19,8 +19,11 @@ set(USE_ONESHOT_EPOLL ${CAN_USE_EPOLL} CACHE BOOL "Use oneshot epoll (required f
 find_package(Threads)
 include(FindFreetype)
 
+find_package(glfw3 3.2 REQUIRED)
+find_package(OpenGL REQUIRED)
+
 set(my_SOURCES main.cpp options.cpp options.hpp text.cpp text.hpp canvas.hpp display_glfw.hpp display_glfw.cpp)
-set(my_LIBRARIES glfw GL ${CMAKE_THREAD_LIBS_INIT} ${FREETYPE_LIBRARIES})
+set(my_LIBRARIES ${OPENGL_gl_LIBRARY} glfw ${CMAKE_THREAD_LIBS_INIT} ${FREETYPE_LIBRARIES})
 
 if (USE_EPOLL)
     set(my_SOURCES ${my_SOURCES} network_epoll.hpp network_epoll.cpp)
@@ -33,7 +36,13 @@ if (USE_EPOLL)
     endif()
 else()
     set(my_SOURCES ${my_SOURCES} network_asio.hpp network_asio.cpp)
-    set(my_LIBRARIES ${my_LIBRARIES} boost_system)
+    find_package(Boost REQUIRED COMPONENTS system) # asio
+    include_directories(${Boost_INCLUDE_DIRS})
+    set(my_LIBRARIES ${my_LIBRARIES} ${Boost_LIBRARIES})
+
+    if (WIN32)
+        set(my_LIBRARIES ${my_LIBRARIES} ws2_32 mswsock) # asio
+    endif()
 endif()
 
 
@@ -68,6 +77,6 @@ set(my_SOURCES ${my_SOURCES} resources.cpp)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 
-include_directories(${FREETYPE_INCLUDE_DIRS})
+include_directories(${FREETYPE_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIR} ${GLFW_INCLUDE_DIR})
 add_executable(pixelflood ${my_SOURCES})
 target_link_libraries(pixelflood ${my_LIBRARIES})

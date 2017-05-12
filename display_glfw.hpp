@@ -3,6 +3,15 @@
 
 #include "canvas.hpp"
 
-void displayCanvas(Canvas& canvas);
+class Display
+{
+	public:
+		Display(int width, int height);
+		~Display();
+		Canvas canvas;
+		void operator()();
+	private:
+		struct GLFWwindow* window;
+};
 
 #endif

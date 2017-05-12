@@ -12,16 +12,15 @@
 class Canvas
 {
 	public:
-		Canvas(int width, int height)
-			: width(width)
-			, height(height)
-			, data(new uint32_t[width * height])
+		Canvas()
 		{
 		}
 
-		~Canvas()
+		Canvas(int width, int height, uint32_t* data)
+			: width(width)
+			, height(height)
+			, data(data)
 		{
-			delete[] data;
 		}
 
 		inline void set(int x, int y, uint32_t rgbx)
@@ -41,9 +40,9 @@ class Canvas
 			set(x, y, rgba);
 		}
 
-		const unsigned width;
-		const unsigned height;
-		uint32_t* const data;
+		unsigned width;
+		unsigned height;
+		uint32_t* data;
 
 	private:
 

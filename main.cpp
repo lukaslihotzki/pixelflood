@@ -28,15 +28,24 @@ int main(int, char** argv) try
 	}
 
 	Display display(opt.buffer.x, opt.buffer.y, opt.fullscreen);
-	std::fill_n(display.canvas.data, display.canvas.width * display.canvas.height, 0);
 
-	if (!opt.quiet) {
+	NetworkHandler* networkHandler;
+
+	display.bindCanvas = [&] () {
+		std::fill_n(display.canvas.data, display.canvas.width * display.canvas.height, 0);
+
+		if (!opt.quiet) {
 #ifdef USE_FREETYPE
-		writeInfoText(display.canvas, opt.port);
+			writeInfoText(display.canvas, opt.port);
 #endif
-	}
+		}
 
-	NetworkHandler networkHandler(display.canvas, opt.port, opt.threadCount);
+		networkHandler = new NetworkHandler(display.canvas, opt.port, opt.threadCount);
+	};
+
+	display.releaseCanvas = [&] () {
+		delete networkHandler;
+	};
 
 	display();
 }

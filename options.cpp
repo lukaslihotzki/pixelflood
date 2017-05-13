@@ -29,6 +29,7 @@ void Options::toDefault()
 	buffer = { .x = 1280, .y = 720 };
 	threadCount = std::thread::hardware_concurrency();
 	port = 1234;
+	quiet = false;
 }
 
 bool Options::parse(const char* const* argv)
@@ -63,6 +64,9 @@ bool Options::parse(const char* const* argv)
 						REQUIRE(arg = *++argv);
 					REQUIRE(parsePositiveNum(arg, port));
 				} break;
+				case 'q': {
+					quiet = true;
+				} break;
 				default:
 					return false;
 			}
@@ -79,7 +83,7 @@ void Options::printUsage(const char* const* argv)
 
 	std::cerr << "Usage: "
 			  << (argv[0] ? argv[0] : "pixelflood")
-			  << " [ -b BUFFER_RESOLUTION ] [ -t THREAD_COUNT ] [ -p PORT ]"
+			  << " [ -b BUFFER_RESOLUTION ] [ -t THREAD_COUNT ] [ -p PORT ] [ -q ]"
 			  << std::endl;
 
 	std::cerr << "Resolutions are formatted like " << buffer.x << 'x' << buffer.y

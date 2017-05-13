@@ -16,6 +16,7 @@ class Options
 
 		unsigned threadCount;
 		uint16_t port;
+		bool quiet;
 };
 
 #endif

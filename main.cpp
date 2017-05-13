@@ -18,7 +18,6 @@
 #endif
 
 #include <iostream>
-#include <sstream>
 
 int main(int, char** argv) try
 {
@@ -32,15 +31,7 @@ int main(int, char** argv) try
 	std::fill_n(display.canvas.data, display.canvas.width * display.canvas.height, 0);
 
 #ifdef USE_FREETYPE
-	std::ostringstream os;
-	os << "ip:\n";
-	for (std::string ip : getIpAddresses())
-		os << "  " << ip << "\n";
-	os << "port:\n"
-	   << "  tcp " << opt.port << "\n"
-	   << "payload:\n"
-	   << "  PX $x $y $color\\n";
-	writeText(display.canvas, os.str());
+	writeInfoText(display.canvas, opt.port);
 #endif
 
 	NetworkHandler networkHandler(display.canvas, opt.port, opt.threadCount);

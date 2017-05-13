@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <memory>
 #include <regex>
+#include <sstream>
 
 #ifdef USE_NETWORK_EPOLL
 #include <arpa/inet.h>
@@ -122,4 +123,22 @@ std::vector<std::string> extractCidrIpAddresses(std::string output)
 std::vector<std::string> getIpAddresses()
 {
 	return extractCidrIpAddresses(exec("ip addr"));
+}
+
+std::string getInfoText(Canvas& canvas, uint16_t port)
+{
+	std::ostringstream os;
+	os << "ip:\n";
+	for (std::string ip : getIpAddresses())
+		os << "  " << ip << "\n";
+	os << "port:\n"
+	   << "  tcp " << port << "\n"
+	   << "payload:\n"
+	   << "  PX $x $y $color\\n";
+	return os.str();
+}
+
+void writeInfoText(Canvas& canvas, uint16_t port)
+{
+	writeText(canvas, getInfoText(canvas, port));
 }

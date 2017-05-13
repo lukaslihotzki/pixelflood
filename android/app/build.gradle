@@ -1,0 +1,49 @@
+apply plugin: 'com.android.application'
+
+task download_freetype {
+	ant.get(src: 'https://downloads.sourceforge.net/project/freetype/freetype2/2.7.1/freetype-2.7.1.tar.gz', dest: 'src', skipexisting: 'true')
+	ant.untar(src: 'src/freetype-2.7.1.tar.gz', dest: 'src/', compression: 'gzip')
+}
+
+android {
+	signingConfigs {
+	}
+	compileSdkVersion 25
+	buildToolsVersion "25.0.3"
+	defaultConfig {
+		applicationId "de.lihotzki.pixelflood"
+		minSdkVersion 21
+		targetSdkVersion 25
+		versionCode 1
+		versionName "1.0"
+		testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+		externalNativeBuild {
+			cmake {
+				cppFlags "-std=c++11 -fexceptions"
+			}
+		}
+	}
+	buildTypes {
+		release {
+			minifyEnabled false
+		}
+		debug {
+		}
+	}
+	externalNativeBuild {
+		cmake {
+			path "../../CMakeLists.txt"
+		}
+	}
+}
+
+dependencies {
+	compile fileTree(include: ['*.jar'], dir: 'libs')
+	androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+		exclude group: 'com.android.support', module: 'support-annotations'
+	})
+	compile 'com.android.support:appcompat-v7:25.2.0'
+	testCompile 'junit:junit:4.12'
+}
+
+build.dependsOn(download_freetype)

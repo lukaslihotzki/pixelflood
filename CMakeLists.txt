@@ -4,37 +4,57 @@ project(pixelflood)
 
 include(CMakeDependentOption)
 
-include(FindFreetype)
-find_package(Threads REQUIRED)
-find_package(OpenGL)
-find_package(glfw3 3.2)
-find_package(GLEW)
-find_package(Boost COMPONENTS system)
+if (ANDROID_NATIVE_API_LEVEL)
 
-list(APPEND my_SOURCES main.cpp options.cpp options.hpp)
-list(APPEND my_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
+    include(AndroidNdkModules)
+    android_ndk_import_module_native_app_glue()
+    find_library(log-lib log)
 
-if (glfw3_FOUND)
-    list(APPEND DISPLAY_OPTIONS GLFW)
+    list(APPEND my_SOURCES android.cpp)
+    list(APPEND my_LIBRARIES ${log-lib} android EGL GLESv1_CM native_app_glue freetype)
+
+    include_directories(android/app/src/freetype-2.7.1/include)
+    add_subdirectory(android/app/src/freetype-2.7.1)
+
+    set(FREETYPE_FOUND ON)
+    set(NETWORK EPOLL)
+    set(GLFW_FOUND OFF)
+
+else()
+
+    include(FindFreetype)
+    find_package(Threads REQUIRED)
+    find_package(OpenGL)
+    find_package(glfw3 3.2)
+    find_package(GLEW)
+    find_package(Boost COMPONENTS system)
+
+    list(APPEND my_SOURCES main.cpp options.cpp options.hpp)
+    list(APPEND my_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
+
+    if (glfw3_FOUND)
+        list(APPEND DISPLAY_OPTIONS GLFW)
+    endif()
+
+    if ("${CMAKE_SYSTEM}" MATCHES "Linux")
+        list(APPEND DISPLAY_OPTIONS FBDEV)
+        list(APPEND NETWORK_OPTIONS EPOLL)
+    endif()
+
+    if (Boost_FOUND)
+        list(APPEND NETWORK_OPTIONS BOOST_ASIO)
+    endif()
+
+    list(GET DISPLAY_OPTIONS 0 DEFAULT_DISPLAY)
+    list(GET NETWORK_OPTIONS 0 DEFAULT_NETWORK)
+
+    set(DISPLAY ${DEFAULT_DISPLAY} CACHE STRING "Library to display buffer")
+    set_property(CACHE DISPLAY PROPERTY STRINGS ${DISPLAY_OPTIONS})
+
+    set(NETWORK ${DEFAULT_NETWORK} CACHE STRING "API to run server")
+    set_property(CACHE NETWORK PROPERTY STRINGS ${NETWORK_OPTIONS})
+
 endif()
-
-if ("${CMAKE_SYSTEM}" MATCHES "Linux")
-    list(APPEND DISPLAY_OPTIONS FBDEV)
-    list(APPEND NETWORK_OPTIONS EPOLL)
-endif()
-
-if (Boost_FOUND)
-    list(APPEND NETWORK_OPTIONS BOOST_ASIO)
-endif()
-
-list(GET DISPLAY_OPTIONS 0 DEFAULT_DISPLAY)
-list(GET NETWORK_OPTIONS 0 DEFAULT_NETWORK)
-
-set(DISPLAY ${DEFAULT_DISPLAY} CACHE STRING "Library to display buffer")
-set_property(CACHE DISPLAY PROPERTY STRINGS ${DISPLAY_OPTIONS})
-
-set(NETWORK ${DEFAULT_NETWORK} CACHE STRING "API to run server")
-set_property(CACHE NETWORK PROPERTY STRINGS ${NETWORK_OPTIONS})
 
 cmake_dependent_option(USE_FREETYPE "Use FreeType to draw text" ON "FREETYPE_FOUND" OFF)
 
@@ -120,5 +140,11 @@ if (WIN32)
 endif()
 
 include_directories(${my_INCLUDES})
-add_executable(pixelflood ${my_SOURCES})
+
+if (ANDROID_NATIVE_API_LEVEL)
+    add_library(pixelflood SHARED ${my_SOURCES})
+else()
+    add_executable(pixelflood ${my_SOURCES})
+endif()
+
 target_link_libraries(pixelflood ${my_LIBRARIES})

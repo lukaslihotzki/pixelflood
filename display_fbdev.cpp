@@ -10,7 +10,7 @@
 #include <stdexcept>
 #include <sys/signal.h>
 
-static volatile bool running = false;
+static volatile bool running = true;
 
 Display::Display(int width, int height, bool fullscreen)
 {
@@ -41,6 +41,10 @@ Display::Display(int width, int height, bool fullscreen)
 		close(fbfd);
 		abort();
 	}
+
+	canvas.width = fixinfo.line_length / 4;
+	canvas.height = varinfo.yres;
+	canvas.data = (uint32_t*)fb;
 }
 
 Display::~Display()

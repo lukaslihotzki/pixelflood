@@ -2,6 +2,7 @@
 #define DISPLAY_FBDEV_HPP
 
 #include "canvas.hpp"
+#include <functional>
 
 class Display
 {
@@ -10,6 +11,9 @@ class Display
 		~Display();
 		Canvas canvas;
 		void operator()();
+		std::function<void()> bindCanvas;
+		std::function<void()> releaseCanvas;
+	private:
 		int fbfd;
 };
 

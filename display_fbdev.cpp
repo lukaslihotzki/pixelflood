@@ -54,7 +54,11 @@ Display::~Display()
 
 void Display::operator()()
 {
+	bindCanvas();
+
 	while (running) {
 		pause();
 	}
+
+	releaseCanvas();
 }

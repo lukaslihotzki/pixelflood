@@ -20,8 +20,6 @@ endif()
 
 if ("${CMAKE_SYSTEM}" MATCHES "Linux")
     list(APPEND DISPLAY_OPTIONS FBDEV)
-    include(FindPkgConfig)
-
     list(APPEND NETWORK_OPTIONS EPOLL)
 endif()
 

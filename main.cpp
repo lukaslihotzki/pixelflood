@@ -9,8 +9,6 @@
 
 #if defined(USE_FBDEV)
 #include "display_fbdev.hpp"
-#elif defined(USE_DRM)
-#include "display_drm.hpp"
 #else
 #include "display_glfw.hpp"
 #endif

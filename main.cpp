@@ -27,7 +27,7 @@ int main(int, char** argv) try
 		return 1;
 	}
 
-	Display display(opt.buffer.x, opt.buffer.y);
+	Display display(opt.buffer.x, opt.buffer.y, opt.fullscreen);
 	std::fill_n(display.canvas.data, display.canvas.width * display.canvas.height, 0);
 
 	if (!opt.quiet) {

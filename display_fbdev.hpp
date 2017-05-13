@@ -6,7 +6,7 @@
 class Display
 {
 	public:
-		Display(int width, int height);
+		Display(int width, int height, bool fullscreen);
 		~Display();
 		Canvas canvas;
 		void operator()();

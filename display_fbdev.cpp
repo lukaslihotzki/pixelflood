@@ -12,7 +12,7 @@
 
 static volatile bool running = false;
 
-Display::Display(int width, int height)
+Display::Display(int width, int height, bool fullscreen)
 {
 	fbfd = open(FB_NAME, O_RDWR);
 

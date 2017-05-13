@@ -12,7 +12,7 @@ static const float vertices[][4] = {{-1.f,-1.f,+0.f,+1.f},
                                     {-1.f,+1.f,+0.f,+0.f},
                                     {+1.f,+1.f,+1.f,+0.f}};
 
-Display::Display(int width, int height)
+Display::Display(int width, int height, bool fullscreen)
 {
 	if (glfwInit() != GL_TRUE) {
 		throw std::runtime_error("glfwInit failed!");
@@ -21,10 +21,26 @@ Display::Display(int width, int height)
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 1);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 
-	window = glfwCreateWindow(width, height, "pixelflood", nullptr, nullptr);
+	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+	const GLFWvidmode* vidmode = glfwGetVideoMode(monitor);
 
+	if (fullscreen) {
+		width = vidmode->width;
+		height = vidmode->height;
+	}
+
+	if (width < 0 || height < 0) {
+		width = vidmode->width / 3 * 2;
+		height = vidmode->height / 3 * 2;
+	}
+
+	window = glfwCreateWindow(width, height, "pixelflood", fullscreen ? monitor : nullptr, nullptr);
 	if (!window) {
 		throw std::runtime_error("glfwCreateWindow failed!");
+	}
+
+	if (fullscreen) {
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 	}
 
 	glfwMakeContextCurrent(window);

@@ -39,34 +39,35 @@ Display::Display(int width, int height, bool fullscreen)
 		throw std::runtime_error("glfwCreateWindow failed!");
 	}
 
+	glfwSetWindowUserPointer(window, this);
+
 	if (fullscreen) {
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 	}
 
 	glfwMakeContextCurrent(window);
-	glfwSetWindowSizeCallback(window, [] (GLFWwindow*, int width, int height) {
-		glViewport(0, 0, width, height);
-	});
-
-	canvas.width = width;
-	canvas.height = height;
-
-	canvas.data = nullptr;
 
 #ifdef USE_GLEW
 	glewInit();
-	if (GL_ARB_buffer_storage) {
-		GLuint buf;
-		glGenBuffers(1, &buf);
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buf);
-		GLuint size = width * height * sizeof(uint32_t);
-		GLuint flags = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
-		glBufferStorage(GL_PIXEL_UNPACK_BUFFER, size, nullptr, flags | GL_CLIENT_STORAGE_BIT);
-		canvas.data = (uint32_t*)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, size, flags);
-		texImageBuf = nullptr;
-	} else
 #endif
-		texImageBuf = canvas.data = new uint32_t[width * height];
+
+	glfwSetFramebufferSizeCallback(window, [] (GLFWwindow*, int width, int height) {
+		glViewport(0, 0, width, height);
+	});
+	glfwSetKeyCallback(window, [] (GLFWwindow* window, int key, int, int action, int) {
+		Display& d = *static_cast<Display*>(glfwGetWindowUserPointer(window));
+		if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+			glfwSetWindowShouldClose(window, 1);
+		}
+		if (key == GLFW_KEY_DELETE && action == GLFW_PRESS && d.bindCanvas && d.releaseCanvas) {
+			d.releaseCanvas();
+			d.cleanupTexture();
+			int width, height;
+			glfwGetFramebufferSize(window, &width, &height);
+			d.createTexture(width, height);
+			d.bindCanvas();
+		}
+	});
 
 	GLuint tex;
 	glGenTextures(1, &tex);
@@ -79,23 +80,65 @@ Display::Display(int width, int height, bool fullscreen)
 	glTexCoordPointer(2, GL_FLOAT, sizeof(vertices[0]), &(vertices[0][2]));
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+	createTexture(width, height);
 }
 
 Display::~Display()
 {
-	glfwDestroyWindow(window);
+	cleanupTexture();
 
-	if (texImageBuf) {
-		delete texImageBuf;
-	}
+	glfwDestroyWindow(window);
 }
 
 void Display::operator()()
 {
+	if (bindCanvas && releaseCanvas) {
+		bindCanvas();
+	}
+
 	do {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, canvas.width, canvas.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texImageBuf);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, sizeof(vertices) / sizeof(vertices[0]));
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	} while (!glfwWindowShouldClose(window));
+
+	if (bindCanvas && releaseCanvas) {
+		releaseCanvas();
+	}
+}
+
+void Display::createTexture(int width, int height)
+{
+	canvas.width = width;
+	canvas.height = height;
+
+	canvas.data = nullptr;
+
+#ifdef USE_GLEW
+	glewInit();
+	if (GL_ARB_buffer_storage) {
+		glGenBuffers(1, &buf);
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buf);
+		GLuint size = width * height * sizeof(uint32_t);
+		GLuint flags = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+		glBufferStorage(GL_PIXEL_UNPACK_BUFFER, size, nullptr, flags | GL_CLIENT_STORAGE_BIT);
+		canvas.data = (uint32_t*)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, size, flags);
+		texImageBuf = nullptr;
+	} else
+#endif
+		texImageBuf = canvas.data = new uint32_t[width * height];
+}
+
+void Display::cleanupTexture()
+{
+	if (GL_ARB_buffer_storage) {
+		glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+		glDeleteBuffers(1, &buf);
+	}
+	if (texImageBuf) {
+		delete[] texImageBuf;
+	}
 }

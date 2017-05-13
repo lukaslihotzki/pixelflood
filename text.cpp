@@ -124,6 +124,9 @@ std::vector<std::string> extractCidrIpAddresses(std::string output)
 
 std::vector<std::string> getIpAddresses()
 {
+#ifdef _WIN32
+	return {}; // "ip addr" doesn't work on windows and "exec" opens terminal window
+#endif
 	return extractCidrIpAddresses(exec("ip addr"));
 }
 

@@ -30,6 +30,7 @@ class server
 		void accept();
 		boost::asio::ip::tcp::acceptor acceptor;
 		boost::asio::ip::tcp::socket next_client;
+		std::list<connection> connections;
 		std::string sizeStr;
 		boost::asio::const_buffers_1 sizeStrBuf;
 		Canvas& canvas;

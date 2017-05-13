@@ -133,7 +133,6 @@ void connection::read()
 				destroy();
 			}
 		} else {
-			socket.close();
 			destroy();
 		}
 	});
@@ -157,8 +156,9 @@ void server::accept()
 {
 	acceptor.async_accept(next_client, [this] (boost::system::error_code err) {
 		if (!err) {
-			connection* c = new connection(std::move(next_client), canvas, sizeStrBuf);
-			c->destroy = [c] () { delete c; };
+			connections.emplace_front(std::move(next_client), canvas, sizeStrBuf);
+			auto it = connections.begin();
+			it->destroy = [this, it] () { connections.erase(it); };
 		}
 		accept();
 	});

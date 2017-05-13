@@ -1,4 +1,5 @@
 #include "options.hpp"
+#include "version.h"
 #include <thread>
 #include <iostream>
 
@@ -84,6 +85,8 @@ bool Options::parse(const char* const* argv)
 void Options::printUsage(const char* const* argv)
 {
 	toDefault();
+
+	std::cerr << RELEASE_NAME << std::endl;
 
 	std::cerr << "Usage: "
 			  << (argv[0] ? argv[0] : "pixelflood")

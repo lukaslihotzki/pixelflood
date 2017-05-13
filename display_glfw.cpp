@@ -1,4 +1,5 @@
 #include "display_glfw.hpp"
+#include "version.h"
 
 #ifdef USE_GLEW
 #include <GL/glew.h>
@@ -34,7 +35,7 @@ Display::Display(int width, int height, bool fullscreen)
 		height = vidmode->height / 3 * 2;
 	}
 
-	window = glfwCreateWindow(width, height, "pixelflood", fullscreen ? monitor : nullptr, nullptr);
+	window = glfwCreateWindow(width, height, RELEASE_NAME, fullscreen ? monitor : nullptr, nullptr);
 	if (!window) {
 		throw std::runtime_error("glfwCreateWindow failed!");
 	}

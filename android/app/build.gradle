@@ -5,6 +5,15 @@ task download_freetype {
 	ant.untar(src: 'src/freetype-2.7.1.tar.gz', dest: 'src/', compression: 'gzip')
 }
 
+def extractDefinedInteger(header, name) {
+	return header.find(/(?:^|\n)#define ${name} ([0-9]+)(?:\n|$)/) { a, b -> b }.toInteger()
+}
+
+String version_h = file('../../version.h').text
+int versionMajor = extractDefinedInteger(version_h, "VERSION_MAJOR")
+int versionMinor = extractDefinedInteger(version_h, "VERSION_MINOR")
+int versionPatch = extractDefinedInteger(version_h, "VERSION_PATCH")
+
 android {
 	signingConfigs {
 	}
@@ -14,8 +23,8 @@ android {
 		applicationId "de.lihotzki.pixelflood"
 		minSdkVersion 21
 		targetSdkVersion 25
-		versionCode 1
-		versionName "1.0"
+		versionName "${versionMajor}.${versionMinor}.${versionPatch}"
+		versionCode versionMajor * 10000 + versionMinor * 100 + versionPatch
 		testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 		externalNativeBuild {
 			cmake {

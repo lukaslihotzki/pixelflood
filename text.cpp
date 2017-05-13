@@ -1,4 +1,5 @@
 #include "text.hpp"
+#include "version.h"
 #include <ft2build.h>
 #include <freetype/freetype.h>
 #include <stdexcept>
@@ -168,7 +169,9 @@ std::string getInfoText(Canvas& canvas, uint16_t port)
 	      "  PX $x $y $color\\n" "\n"
 	      "  SIZE\\n" "\n"
 	      "size:" "\n"
-	      "  " << canvas.width << "x" << canvas.height;
+	      "  " << canvas.width << "x" << canvas.height << "\n"
+	      "server:" "\n"
+	      "  " RELEASE_NAME;
 	return os.str();
 }
 

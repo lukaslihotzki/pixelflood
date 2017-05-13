@@ -133,11 +133,13 @@ void Display::createTexture(int width, int height)
 
 void Display::cleanupTexture()
 {
+#ifdef USE_GLEW
 	if (GL_ARB_buffer_storage) {
 		glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 		glDeleteBuffers(1, &buf);
 	}
+#endif
 	if (texImageBuf) {
 		delete[] texImageBuf;
 	}

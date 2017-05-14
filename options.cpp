@@ -84,8 +84,6 @@ bool Options::parse(const char* const* argv)
 
 void Options::printUsage(const char* const* argv)
 {
-	toDefault();
-
 	std::cerr << RELEASE_NAME << std::endl;
 
 	std::cerr << "Usage: "
@@ -93,6 +91,5 @@ void Options::printUsage(const char* const* argv)
 			  << " [ -b BUFFER_RESOLUTION ] [ -t THREAD_COUNT ] [ -p PORT ] [ -q ] [ -f ]"
 			  << std::endl;
 
-	std::cerr << "Resolutions are formatted like " << buffer.x << 'x' << buffer.y
-			  << std::endl;
+	std::cerr << "Resolutions are formatted like 1280x720" << std::endl;
 }

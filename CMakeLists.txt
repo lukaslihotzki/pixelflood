@@ -60,6 +60,8 @@ else()
 
 endif()
 
+list(APPEND my_SOURCES canvas.hpp version.h)
+
 cmake_dependent_option(USE_FREETYPE "Use FreeType to draw text" ON "FREETYPE_FOUND" OFF)
 
 if (NETWORK MATCHES "BOOST_ASIO")

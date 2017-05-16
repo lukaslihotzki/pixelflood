@@ -11,12 +11,16 @@ if (ANDROID_NATIVE_API_LEVEL)
     find_library(log-lib log)
 
     list(APPEND my_SOURCES android.cpp)
-    list(APPEND my_LIBRARIES ${log-lib} android EGL GLESv1_CM native_app_glue freetype)
+    list(APPEND my_LIBRARIES ${log-lib} android EGL GLESv1_CM native_app_glue)
 
-    include_directories(android/app/src/freetype-2.7.1/include)
-    add_subdirectory(android/app/src/freetype-2.7.1)
+    set(FREETYPE_SRC_DIR "" CACHE PATH "Path to freetype source")
+    if (FREETYPE_SRC_DIR)
+        add_subdirectory(${FREETYPE_SRC_DIR} freetype)
+        set(FREETYPE_INCLUDE_DIRS ${FREETYPE_SRC_DIR}/include)
+        set(FREETYPE_LIBRARIES freetype)
+        set(FREETYPE_FOUND ON)
+    endif()
 
-    set(FREETYPE_FOUND ON)
     set(NETWORK EPOLL)
     set(GLFW_FOUND OFF)
 

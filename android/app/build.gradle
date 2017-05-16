@@ -1,10 +1,5 @@
 apply plugin: 'com.android.application'
 
-task download_freetype {
-	ant.get(src: 'https://downloads.sourceforge.net/project/freetype/freetype2/2.7.1/freetype-2.7.1.tar.gz', dest: 'src', skipexisting: 'true')
-	ant.untar(src: 'src/freetype-2.7.1.tar.gz', dest: 'src/', compression: 'gzip')
-}
-
 def extractDefinedInteger(header, name) {
 	return header.find(/(?:^|\n)#define ${name} ([0-9]+)(?:\n|$)/) { a, b -> b }.toInteger()
 }
@@ -13,6 +8,10 @@ String version_h = file('../../version.h').text
 int versionMajor = extractDefinedInteger(version_h, "VERSION_MAJOR")
 int versionMinor = extractDefinedInteger(version_h, "VERSION_MINOR")
 int versionPatch = extractDefinedInteger(version_h, "VERSION_PATCH")
+
+Properties properties = new Properties()
+properties.load(rootProject.file('local.properties').newDataInputStream())
+String freetype_src_dir = properties.getProperty("freetype.src.dir")
 
 android {
 	signingConfigs {
@@ -28,6 +27,9 @@ android {
 		testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 		externalNativeBuild {
 			cmake {
+				if (freetype_src_dir != null) {
+					arguments "-DFREETYPE_SRC_DIR=" + rootProject.file(freetype_src_dir).getPath()
+				}
 				cppFlags "-std=c++11 -fexceptions"
 			}
 		}
@@ -54,5 +56,3 @@ dependencies {
 	compile 'com.android.support:appcompat-v7:25.2.0'
 	testCompile 'junit:junit:4.12'
 }
-
-build.dependsOn(download_freetype)

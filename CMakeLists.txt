@@ -98,7 +98,7 @@ cmake_dependent_option(USE_GLEW "Use GLEW to load extension for zero copy" ON "U
 if (USE_GLEW)
     add_definitions(-DUSE_GLEW)
     list(APPEND my_INCLUDES ${GLEW_INCLUDE_DIR})
-    list(APPEND my_LIBRARIES glfw ${GLEW_LIBRARIES})
+    list(APPEND my_LIBRARIES ${GLEW_LIBRARIES})
 endif()
 
 if (DISPLAY MATCHES "FBDEV")

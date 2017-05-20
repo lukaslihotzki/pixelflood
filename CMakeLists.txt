@@ -22,7 +22,6 @@ if (ANDROID_NATIVE_API_LEVEL)
     endif()
 
     set(NETWORK EPOLL)
-    set(GLFW_FOUND OFF)
 
 else()
 

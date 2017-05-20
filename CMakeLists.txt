@@ -32,7 +32,7 @@ else()
     include(FindFreetype)
     find_package(Threads REQUIRED)
     find_package(OpenGL)
-    find_package(glfw3 3.2)
+    find_package(glfw3 3.1)
     find_package(GLEW)
     find_package(Boost COMPONENTS system)
 
@@ -93,8 +93,17 @@ endif()
 if (DISPLAY MATCHES "GLFW")
     set(USE_GLFW ON)
     add_definitions(-DUSE_GLFW)
-    list(APPEND my_INCLUDES ${GLFW_INCLUDE_DIR} ${OPENGL_INCLUDE_DIR})
-    list(APPEND my_LIBRARIES glfw ${OPENGL_gl_LIBRARY})
+
+    list(APPEND my_INCLUDES ${OPENGL_INCLUDE_DIR})
+    list(APPEND my_LIBRARIES ${OPENGL_gl_LIBRARY})
+
+    if ("${GLFW3_LIBRARY}" STREQUAL "")
+        list(APPEND my_LIBRARIES glfw)
+    else()
+        list(APPEND my_INCLUDES ${GLFW3_INCLUDE_DIR})
+        list(APPEND my_LIBRARIES ${GLFW3_LIBRARY})
+    endif()
+
     list(APPEND my_SOURCES display_glfw.cpp display_glfw.hpp)
 endif()
 

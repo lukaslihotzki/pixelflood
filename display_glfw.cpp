@@ -118,7 +118,6 @@ void Display::createTexture(int width, int height)
 	canvas.data = nullptr;
 
 #ifdef USE_GLEW
-	glewInit();
 	if (GL_ARB_buffer_storage) {
 		glGenBuffers(1, &buf);
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buf);

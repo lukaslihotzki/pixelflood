@@ -31,13 +31,9 @@ class Canvas
 		inline void blend(int x, int y, uint32_t rgba)
 		{
 			uint8_t alpha = rgba;
-
-			if (alpha != 255) {
-				uint32_t back = data[width * y + x];
-				rgba = alphaMultiply(convert(rgba), alpha) + alphaMultiply(back, 255 - alpha);
-			}
-
-			set(x, y, rgba);
+			uint32_t back = data[width * y + x];
+			rgba = alphaMultiply(convert(rgba), alpha) + alphaMultiply(back, 255 - alpha);
+			data[width * y + x] = rgba;
 		}
 
 		unsigned width;

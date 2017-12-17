@@ -3,8 +3,8 @@
 A fast, asynchronous implementation of [Pixelflut](https://cccgoe.de/wiki/Pixelflut).
 
 - Uses GLFW and GLEW (optional) to display the buffer
-- Uses epoll on linux or boost asio on other systems for networking
-- Uses FreeType to draw IP address, port, etc., to buffer
+- Uses epoll on linux or boost asio for networking
+- Uses FreeType to draw IP address, port, etc., to buffer (optional)
 
 Using epoll, each open TCP connection only takes 8 bytes of user space memory.
 

@@ -20,7 +20,6 @@
 #include <assert.h>
 
 #include <iostream>
-#include <fstream>
 #include <sstream>
 
 #ifdef USE_EDGE_TRIGGERED_EPOLL
@@ -61,14 +60,13 @@ NetworkHandler::NetworkHandler(Canvas& canvas, uint16_t port, unsigned threadCou
 {
 	signal(SIGPIPE, SIG_IGN);
 
-	{
-		std::ifstream fd_max_stream("/proc/sys/fs/file-max");
-		if (!(fd_max_stream >> fd_max)) {
-			throw std::runtime_error("Can not read /proc/sys/fs/file-max");
-		}
+	if ((fd_max = sysconf(_SC_OPEN_MAX)) < 1024) {
+		std::cerr << "OPEN_MAX is very low (" << fd_max << "), assuming 1024." << std::endl;
+		fd_max = 1024;
 	}
-	state = new uint64_t[fd_max + 1];
-	std::fill_n(state, fd_max + 1, CLOSED_STATE);
+
+	state = new uint64_t[fd_max];
+	std::fill_n(state, fd_max, CLOSED_STATE);
 
 	epollfd = epoll_create1(0);
 	if (epollfd == -1)
@@ -152,6 +150,9 @@ void NetworkHandler::work()
 			} else if (fd == serverfd) {
 				int clientfd;
 				READ ((clientfd = accept4(serverfd, nullptr, nullptr, SOCK_NONBLOCK)) >= 0) {
+					if (clientfd >= fd_max) {
+						throw std::runtime_error("invalid fd");
+					}
 					state[clientfd] = INITIAL_STATE;
 					struct epoll_event ee = { .events = EPOLLIN | MODE, .data = { .fd = clientfd } };
 					int err;

@@ -1,7 +1,7 @@
 // These 3 lines are read by gradle for android builds using regex.
 #define VERSION_MAJOR 1
 #define VERSION_MINOR 0
-#define VERSION_PATCH 2
+#define VERSION_PATCH 3
 
 // This is just for the C++ compiler.
 #define STRINGIFY(x) STRINGIFY_PRE(x)

@@ -35,6 +35,7 @@ else()
     find_package(glfw3 3.1)
     find_package(GLEW)
     find_package(Boost COMPONENTS system)
+    find_path(ASIO_INCLUDE_DIR NAMES asio.hpp)
 
     list(APPEND my_SOURCES main.cpp options.cpp options.hpp)
     list(APPEND my_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
@@ -50,6 +51,10 @@ else()
 
     if (Boost_FOUND)
         list(APPEND NETWORK_OPTIONS BOOST_ASIO)
+    endif()
+
+    if (NOT "${ASIO_INCLUDE_DIR}" MATCHES "ASIO_INCLUDE_DIR-NOTFOUND")
+        list(APPEND NETWORK_OPTIONS ASIO_STANDALONE)
     endif()
 
     list(GET DISPLAY_OPTIONS 0 DEFAULT_DISPLAY)
@@ -68,9 +73,14 @@ list(APPEND my_SOURCES canvas.hpp version.h)
 cmake_dependent_option(USE_FREETYPE "Use FreeType to draw text" ON "FREETYPE_FOUND" OFF)
 
 if (NETWORK MATCHES "BOOST_ASIO")
-    #add_definitions(-DUSE_BOOST_ASIO)
+    add_definitions(-DUSE_BOOST_ASIO)
     list(APPEND my_INCLUDES ${Boost_INCLUDE_DIRS})
     list(APPEND my_LIBRARIES ${Boost_LIBRARIES})
+    list(APPEND my_SOURCES network_asio.cpp network_asio.hpp)
+endif()
+
+if (NETWORK MATCHES "ASIO_STANDALONE")
+    list(APPEND my_INCLUDES ${ASIO_INCLUDE_DIR})
     list(APPEND my_SOURCES network_asio.cpp network_asio.hpp)
 endif()
 

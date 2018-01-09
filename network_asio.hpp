@@ -2,37 +2,38 @@
 #define NETWORK_ASIO_HPP
 
 #include "canvas.hpp"
-#include <boost/asio.hpp>
+#include "my_asio.hpp"
 #include <list>
 #include <thread>
 #include <stack>
+#include <functional>
 
 class connection
 {
 	public:
-		connection(boost::asio::ip::tcp::socket&& socket, Canvas& canvas, boost::asio::const_buffers_1& sizeStrBuf);
+		connection(my_asio::ip::tcp::socket&& socket, Canvas& canvas, my_asio::const_buffers_1& sizeStrBuf);
 		std::function<void()> destroy;
 	private:
 		void read();
-		boost::asio::ip::tcp::socket socket;
+		my_asio::ip::tcp::socket socket;
 		Canvas& canvas;
 		char buf[32768];
 		int o;
-		boost::asio::const_buffers_1& sizeStrBuf;
+		my_asio::const_buffers_1& sizeStrBuf;
 		bool pending;
 };
 
 class server
 {
 	public:
-		server(boost::asio::io_service& io_service, boost::asio::ip::tcp::endpoint endpoint, Canvas& canvas);
+		server(my_asio::io_service& io_service, my_asio::ip::tcp::endpoint endpoint, Canvas& canvas);
 	private:
 		void accept();
-		boost::asio::ip::tcp::acceptor acceptor;
-		boost::asio::ip::tcp::socket next_client;
+		my_asio::ip::tcp::acceptor acceptor;
+		my_asio::ip::tcp::socket next_client;
 		std::list<connection> connections;
 		std::string sizeStr;
-		boost::asio::const_buffers_1 sizeStrBuf;
+		my_asio::const_buffers_1 sizeStrBuf;
 		Canvas& canvas;
 };
 
@@ -43,7 +44,7 @@ class NetworkHandler
 		~NetworkHandler();
 	private:
 		void work();
-		boost::asio::io_service io_service;
+		my_asio::io_service io_service;
 		server s;
 		std::stack<std::thread> threads;
 };

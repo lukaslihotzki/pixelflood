@@ -41,7 +41,7 @@
 	c <<= 4; \
 	HEX_DIGIT(c);
 
-connection::connection(boost::asio::ip::tcp::socket&& socket, Canvas& canvas, boost::asio::const_buffers_1& sizeStrBuf)
+connection::connection(my_asio::ip::tcp::socket&& socket, Canvas& canvas, my_asio::const_buffers_1& sizeStrBuf)
     : socket(std::move(socket))
     , canvas(canvas)
     , o(0)
@@ -53,7 +53,7 @@ connection::connection(boost::asio::ip::tcp::socket&& socket, Canvas& canvas, bo
 
 void connection::read()
 {
-	socket.async_read_some(boost::asio::buffer(buf + o, sizeof(buf) - o), [this] (boost::system::error_code err, size_t size) {
+	socket.async_read_some(my_asio::buffer(buf + o, sizeof(buf) - o), [this] (my_asio::error_code err, size_t size) {
 		if (!err) {
 			o += size;
 			int ro = 0;
@@ -106,7 +106,7 @@ void connection::read()
 						}
 
 						pending = true;
-						boost::asio::async_write(socket, sizeStrBuf, [this] (boost::system::error_code err, size_t) {
+						my_asio::async_write(socket, sizeStrBuf, [this] (my_asio::error_code err, size_t) {
 							if (err) {
 								socket.close();
 								destroy();
@@ -138,7 +138,7 @@ void connection::read()
 	});
 }
 
-server::server(boost::asio::io_service& io_service, boost::asio::ip::tcp::endpoint endpoint, Canvas& canvas)
+server::server(my_asio::io_service& io_service, my_asio::ip::tcp::endpoint endpoint, Canvas& canvas)
     : acceptor(io_service, endpoint)
     , next_client(io_service)
 	, sizeStr([&canvas] () {
@@ -146,7 +146,7 @@ server::server(boost::asio::io_service& io_service, boost::asio::ip::tcp::endpoi
 		os << "SIZE " << canvas.width << ' ' << canvas.height << '\n';
 		return os.str();
 	} ())
-	, sizeStrBuf(boost::asio::buffer(sizeStr))
+	, sizeStrBuf(my_asio::buffer(sizeStr))
     , canvas(canvas)
 {
 	accept();
@@ -154,7 +154,7 @@ server::server(boost::asio::io_service& io_service, boost::asio::ip::tcp::endpoi
 
 void server::accept()
 {
-	acceptor.async_accept(next_client, [this] (boost::system::error_code err) {
+	acceptor.async_accept(next_client, [this] (my_asio::error_code err) {
 		if (!err) {
 			connections.emplace_front(std::move(next_client), canvas, sizeStrBuf);
 			auto it = connections.begin();
@@ -165,7 +165,7 @@ void server::accept()
 }
 
 NetworkHandler::NetworkHandler(Canvas& canvas, uint16_t port, unsigned threadCount)
-	: s(io_service, {boost::asio::ip::address_v6::any(), port}, canvas)
+	: s(io_service, {my_asio::ip::address_v6::any(), port}, canvas)
 {
 	for (unsigned i = 0; i < threadCount; i++) {
 		threads.emplace(&NetworkHandler::work, this);

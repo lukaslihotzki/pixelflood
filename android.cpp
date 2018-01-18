@@ -5,6 +5,8 @@
 
 #include <android_native_app_glue.h>
 
+#include <sys/resource.h>
+
 #include "canvas.hpp"
 #include "network_epoll.hpp"
 
@@ -144,6 +146,13 @@ void handle_cmd(struct android_app* app, int32_t cmd)
 
 extern "C" void android_main(struct android_app* app)
 {
+	// Raise open files limit because Android makes it difficult to do for end users.
+	struct rlimit rlim;
+	if (getrlimit(RLIMIT_NOFILE, &rlim) == 0) {
+		rlim.rlim_cur = rlim.rlim_max;
+		setrlimit(RLIMIT_NOFILE, &rlim);
+	}
+
 	UserData userData;
 
 	memset(&userData, 0, sizeof(userData));

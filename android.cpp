@@ -4,6 +4,7 @@
 #include <GLES/gl.h>
 
 #include <android_native_app_glue.h>
+#include <android/window.h>
 
 #include <sys/resource.h>
 
@@ -36,6 +37,8 @@ static const float vertices[][4] = {{-1.f,-1.f,+0.f,+1.f},
 
 void init(UserData* userData)
 {
+	ANativeActivity_setWindowFlags(userData->app->activity, AWINDOW_FLAG_KEEP_SCREEN_ON, 0);
+
 	static const EGLint attribs[] = {
 		EGL_BLUE_SIZE, 8,
 		EGL_GREEN_SIZE, 8,

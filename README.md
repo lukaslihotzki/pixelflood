@@ -32,3 +32,17 @@ Replace `pxuser` with the username of the user running pixelflood, and execute
 $ ulimit -n 1000000
 ```
 in the shell before starting `./pixelflood`. This will allow about 1000000 connections. To see the maximum settable number of open files, read `/proc/sys/fs/file-max`.
+
+## License
+pixelflood is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+pixelflood is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with pixelflood.  If not, see <http://www.gnu.org/licenses/>.

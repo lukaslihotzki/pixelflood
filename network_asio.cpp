@@ -42,9 +42,9 @@
 	HEX_DIGIT(c);
 
 connection::connection(my_asio::ip::tcp::socket&& socket, Canvas& canvas, my_asio::const_buffers_1& sizeStrBuf)
-    : socket(std::move(socket))
-    , canvas(canvas)
-    , o(0)
+	: socket(std::move(socket))
+	, canvas(canvas)
+	, o(0)
 	, sizeStrBuf(sizeStrBuf)
 	, pending(false)
 {
@@ -118,11 +118,11 @@ void connection::read()
 					}
 				}
 				goto ok;
-                err:
+				err:
 				socket.close();
 				destroy();
 				return;
-                ok:
+				ok:
 				std::copy(buf + ro, buf + o, buf);
 				o -= ro;
 				read();
@@ -139,15 +139,15 @@ void connection::read()
 }
 
 server::server(my_asio::io_service& io_service, my_asio::ip::tcp::endpoint endpoint, Canvas& canvas)
-    : acceptor(io_service, endpoint)
-    , next_client(io_service)
+	: acceptor(io_service, endpoint)
+	, next_client(io_service)
 	, sizeStr([&canvas] () {
 		std::ostringstream os;
 		os << "SIZE " << canvas.width << ' ' << canvas.height << '\n';
 		return os.str();
 	} ())
 	, sizeStrBuf(my_asio::buffer(sizeStr))
-    , canvas(canvas)
+	, canvas(canvas)
 {
 	accept();
 }

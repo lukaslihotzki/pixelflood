@@ -11,7 +11,7 @@
 class connection
 {
 	public:
-		connection(my_asio::ip::tcp::socket&& socket, Canvas& canvas, my_asio::const_buffers_1& sizeStrBuf);
+		connection(my_asio::ip::tcp::socket&& socket, Canvas& canvas, my_asio::const_buffers_1& sizeStrBuf, my_asio::const_buffers_1& helpStrBuf);
 		std::function<void()> destroy;
 	private:
 		void read();
@@ -20,6 +20,7 @@ class connection
 		char buf[32768];
 		int o;
 		my_asio::const_buffers_1& sizeStrBuf;
+		my_asio::const_buffers_1& helpStrBuf;
 		bool pending;
 };
 
@@ -34,6 +35,7 @@ class server
 		std::list<connection> connections;
 		std::string sizeStr;
 		my_asio::const_buffers_1 sizeStrBuf;
+		my_asio::const_buffers_1 helpStrBuf;
 		Canvas& canvas;
 };
 

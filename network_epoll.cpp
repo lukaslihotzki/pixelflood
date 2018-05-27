@@ -1,4 +1,5 @@
 #include "network_epoll.hpp"
+#include "version.h"
 
 #include <sys/epoll.h>
 #include <fcntl.h>
@@ -187,7 +188,10 @@ void NetworkHandler::work()
 					switch (s) {
 						case0:
 						case 0:
-							if (*c == 'P') c++; else if (*c == 'S') { dc = 0; s = 7; c++; goto case7; } else { s = 0; break; }
+							if (*c == 'P') c++;
+							else if (*c == 'S') { dc = 0; s = 7; c++; goto case7; }
+							else if (*c == 'H') { dc = 0; s = 8; c++; goto case8; }
+							else { s = 0; break; }
 						case 1:
 							if (*c == 'X') c++; else { s = 1; break; }
 						case 2:
@@ -263,6 +267,34 @@ void NetworkHandler::work()
 											break;
 										}
 										if (write(fd, sizeData, sizeLen) != sizeLen) {
+											break;
+										}
+										s = x = y = col = dc = 0;
+										c++;
+										goto case0;
+									} else { dc = 4; break; }
+							}
+						case8:
+						case 8:
+							switch (dc) {
+								case 0:
+									if (*c == 'E') c++; else { dc = 0; break; }
+								case 1:
+									if (*c == 'L') c++; else { dc = 1; break; }
+								case 2:
+									if (*c == 'P') c++; else { dc = 2; break; }
+								case 3:
+									if (*c != '\n') {
+										if (*c == '\r') c++; else { dc = 3; break; }
+									}
+								case 4:
+									if (*c == '\n') {
+										int pending;
+										int err = ioctl(fd, SIOCOUTQ, &pending);
+										if (err || pending) {
+											break;
+										}
+										if (write(fd, HELP_TEXT, HELP_TEXT_SIZE) != HELP_TEXT_SIZE) {
 											break;
 										}
 										s = x = y = col = dc = 0;

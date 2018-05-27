@@ -1,4 +1,5 @@
 #include "network_asio.hpp"
+#include "version.h"
 
 #define EXPECT_CH(c) \
 	if (it != end && *it == c) { \
@@ -41,11 +42,12 @@
 	c <<= 4; \
 	HEX_DIGIT(c);
 
-connection::connection(my_asio::ip::tcp::socket&& socket, Canvas& canvas, my_asio::const_buffers_1& sizeStrBuf)
+connection::connection(my_asio::ip::tcp::socket&& socket, Canvas& canvas, my_asio::const_buffers_1& sizeStrBuf, my_asio::const_buffers_1& helpStrBuf)
 	: socket(std::move(socket))
 	, canvas(canvas)
 	, o(0)
 	, sizeStrBuf(sizeStrBuf)
+	, helpStrBuf(helpStrBuf)
 	, pending(false)
 {
 	read();
@@ -113,6 +115,25 @@ void connection::read()
 							}
 							pending = false;
 						});
+					} else if (*it == 'H') {
+						it++;
+						EXPECT_CH('E');
+						EXPECT_CH('L');
+						EXPECT_CH('P');
+						OPTIONAL_CH('\r');
+						EXPECT_CH('\n');
+						if (pending) {
+							goto err;
+						}
+
+						pending = true;
+						my_asio::async_write(socket, helpStrBuf, [this] (my_asio::error_code err, size_t) {
+							if (err) {
+								socket.close();
+								destroy();
+							}
+							pending = false;
+						});
 					} else {
 						goto err;
 					}
@@ -147,6 +168,7 @@ server::server(my_asio::io_service& io_service, my_asio::ip::tcp::endpoint endpo
 		return os.str();
 	} ())
 	, sizeStrBuf(my_asio::buffer(sizeStr))
+	, helpStrBuf(my_asio::buffer(HELP_TEXT, HELP_TEXT_SIZE))
 	, canvas(canvas)
 {
 	accept();
@@ -156,7 +178,7 @@ void server::accept()
 {
 	acceptor.async_accept(next_client, [this] (my_asio::error_code err) {
 		if (!err) {
-			connections.emplace_front(std::move(next_client), canvas, sizeStrBuf);
+			connections.emplace_front(std::move(next_client), canvas, sizeStrBuf, helpStrBuf);
 			auto it = connections.begin();
 			it->destroy = [this, it] () { connections.erase(it); };
 		}

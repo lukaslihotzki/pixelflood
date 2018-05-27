@@ -12,3 +12,6 @@
 #define APP_NAME "pixelflood"
 #define RELEASE_NAME APP_NAME " " VERSION
 
+#define HELP_TEXT RELEASE_NAME "\n"
+
+#define HELP_TEXT_SIZE (sizeof(HELP_TEXT) - 1) // exclude terminating null character

@@ -33,6 +33,15 @@ $ ulimit -n 1000000
 ```
 in the shell before starting `./pixelflood`. This will allow about 1000000 connections. To see the maximum settable number of open files, read `/proc/sys/fs/file-max`.
 
+## Control
+
+### Keyboard (GLFW)
+- Esc: exit
+- Del: reset and rescale canvas to window size, close open connections
+
+### Android
+- Rotating device resets like Del
+
 ## License
 pixelflood is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by

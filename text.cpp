@@ -165,8 +165,7 @@ std::string getInfoText(Canvas& canvas, uint16_t port)
 	os << "port:\n"
 	      "  tcp " << port << "\n"
 	      "payload:\n"
-	      "  PX $x $y $color\\n" "\n"
-	      "  SIZE\\n" "\n"
+	      SUPPORTED_COMMANDS("  ")
 	      "size:" "\n"
 	      "  " << canvas.width << "x" << canvas.height << "\n"
 	      "server:" "\n"

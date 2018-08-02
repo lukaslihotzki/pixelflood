@@ -12,6 +12,8 @@
 #define APP_NAME "pixelflood"
 #define RELEASE_NAME APP_NAME " " VERSION
 
+#define SOURCE_URL "https://lihotzki.de/pixelflood"
+
 #define SUPPORTED_COMMANDS(indent) \
 	indent "PX x y rrggbb\\n" "\n" \
 	indent "PX x y rrggbbaa\\n" "\n" \
@@ -19,7 +21,7 @@
 	indent "HELP\\n" "\n"
 
 #define HELP_TEXT \
-	RELEASE_NAME "\n\n" \
+	RELEASE_NAME "\n" SOURCE_URL "\n\n" \
 	SUPPORTED_COMMANDS("") "\n"
 
 #define HELP_TEXT_SIZE (sizeof(HELP_TEXT) - 1) // exclude terminating null character

@@ -56,14 +56,12 @@ static void errno_exit(const char *s)
 
 NetworkHandler::NetworkHandler(Canvas& canvas, uint16_t port, unsigned threadCount)
 	: canvas(canvas)
-        , buf((char*)mmap(nullptr, 1<<21, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0))
 	, sizeStr([&canvas] () {
 		std::ostringstream os;
 		os << "SIZE " << canvas.width << ' ' << canvas.height << '\n';
 		return os.str();
 	} ())
 {
-	madvise(buf, 1<<21, MADV_HUGEPAGE);
 	signal(SIGPIPE, SIG_IGN);
 
 	if ((fd_max = sysconf(_SC_OPEN_MAX)) < 1024) {
@@ -145,6 +143,16 @@ void NetworkHandler::work()
 	const char* sizeData = sizeStr.data();
 	int sizeLen = sizeStr.length();
 
+	char* buf = (char*)mmap(nullptr, 1<<21, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+	char* fbuf = buf;
+	char* bbuf = buf + (1<<16);
+	madvise(buf, 1<<21, MADV_HUGEPAGE);
+	std::atomic<bool> running(true);
+	pthread_barrier_t barrier;
+	pthread_barrier_init(&barrier, nullptr, 2);
+	int fdr[2];
+	std::thread parser(&NetworkHandler::work_parse, this, buf, &barrier, &running, fdr);
+
 	for (;;) {
 		struct epoll_event event[MAX_EVENTS];
 		int eventCnt = epoll_wait(epollfd, event, MAX_EVENTS, -1);
@@ -152,6 +160,14 @@ void NetworkHandler::work()
 			int fd = event[i].data.fd;
 
 			if (fd == evfd) {
+				std::cout << "running false" << std::endl;
+				running = false;
+				pthread_barrier_wait(&barrier);
+				std::cout << "bar1" << std::endl;
+				parser.join();
+				std::cout << "join" << std::endl;
+				pthread_barrier_destroy(&barrier);
+				std::cout << "bard" << std::endl;
 				return;
 			} else if (fd == serverfd) {
 				int clientfd;
@@ -174,16 +190,11 @@ void NetworkHandler::work()
 				}
 			} else {
 				int size;
-				READ ((size = read(fd, buf, 65535)) > 0) {
-					buf[size] = '\0';
-					char* c = buf;
-					state[fd] = parse(&canvas.data, &c, state[fd], nullptr);
-					if (((state[fd] & CLOSED_STATE) == CLOSED_STATE) || c != buf + size) {
-						std::cout << state[fd] << std::endl;
-						state[fd] = CLOSED_STATE;
-						close(fd);
-						BREAK_IF_ET;
-					}
+				READ ((size = read(fd, fbuf, 65535)) > 0) {
+					fbuf[size] = '\0';
+					fdr[0] = fd;
+					pthread_barrier_wait(&barrier);
+					std::swap(fbuf, bbuf);
 				}
 				if (size == 0) {
 					state[fd] = CLOSED_STATE;
@@ -198,5 +209,19 @@ void NetworkHandler::work()
 				}
 			}
 		}
+	}
+	
+}
+
+void NetworkHandler::work_parse(char* buf, pthread_barrier_t* barrier, std::atomic<bool>* running, int* fd)
+{
+	char* fbuf = buf;
+	char* bbuf = buf + (1<<16);
+	for (;;) {
+		pthread_barrier_wait(barrier);
+		if (!*running) return;
+		char* c = fbuf;
+		state[fd[0]] = parse(&canvas.data, &c, state[fd[0]], nullptr);
+		std::swap(fbuf, bbuf);
 	}
 }

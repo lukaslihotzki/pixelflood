@@ -41,7 +41,11 @@
 #endif
 
 #define INITIAL_STATE 0
-#define CLOSED_STATE 1 // invalid because comb = 0 => col = 0
+#define CLOSED_STATE 0xf
+
+extern "C" {
+	uint64_t parse(uint32_t** output, char** str, uint64_t state, char* cout);
+}
 
 static void errno_exit(const char *s)
 {
@@ -52,12 +56,14 @@ static void errno_exit(const char *s)
 
 NetworkHandler::NetworkHandler(Canvas& canvas, uint16_t port, unsigned threadCount)
 	: canvas(canvas)
+        , buf((char*)mmap(nullptr, 1<<21, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0))
 	, sizeStr([&canvas] () {
 		std::ostringstream os;
 		os << "SIZE " << canvas.width << ' ' << canvas.height << '\n';
 		return os.str();
 	} ())
 {
+	madvise(buf, 1<<21, MADV_HUGEPAGE);
 	signal(SIGPIPE, SIG_IGN);
 
 	if ((fd_max = sysconf(_SC_OPEN_MAX)) < 1024) {
@@ -126,7 +132,7 @@ NetworkHandler::~NetworkHandler()
 	close(evfd);
 	close(serverfd);
 	for (int i = 0; i < fd_max; i++) {
-		if (state[i] != CLOSED_STATE) {
+		if ((state[i] & CLOSED_STATE) != CLOSED_STATE) {
 			close(i);
 		}
 	}
@@ -167,156 +173,15 @@ void NetworkHandler::work()
 #endif
 				}
 			} else {
-				char buf[32768];
 				int size;
-				READ ((size = read(fd, &buf, sizeof buf - 1)) > 0) {
+				READ ((size = read(fd, buf, 65535)) > 0) {
 					buf[size] = '\0';
 					char* c = buf;
-					uint64_t ss = state[fd];
-					unsigned col = (ss >> 0) & 0xFFFFFFFF;
-					unsigned x = (ss >> 32) & 0x1FFF;
-					unsigned y = (ss >> 45) & 0x1FFF;
-					unsigned comb = (ss >> 58) & 0x3F;
-					unsigned s = comb / 9;
-					unsigned dc = comb % 9;
-					if (!s) {
-						s = dc;
-						dc = 0;
-					} else {
-						s += 2;
-					}
-					switch (s) {
-						case0:
-						case 0:
-							if (*c == 'P') c++;
-							else if (*c == 'S') { dc = 0; s = 7; c++; goto case7; }
-							else if (*c == 'H') { dc = 0; s = 8; c++; goto case8; }
-							else { s = 0; break; }
-						case 1:
-							if (*c == 'X') c++; else { s = 1; break; }
-						case 2:
-							if (*c == ' ') c++; else { s = 2; break; }
-						case 3:
-							while (*c >= '0' && *c <= '9' && dc < 4) {
-								x = 10 * x + (*c - '0');
-								if (x >= xmax)
-									break;
-								dc++;
-								c++;
-							}
-							if (dc && *c == ' ') { dc = 0; c++; } else { s = 3; break; }
-						case 4:
-							while (*c >= '0' && *c <= '9' && dc < 4) {
-								y = 10 * y + (*c - '0');
-								if (y >= ymax)
-									break;
-								dc++;
-								c++;
-							}
-							if (dc && *c == ' ') { dc = 0; c++; } else { s = 4; break; }
-						case 5:
-							s = 5;
-							while (dc < 8) {
-								char lc = *c | 0x20;
-								if (*c >= '0' && *c <= '9') {
-									col = (col << 4) | (*c - '0');
-								} else if (lc >= 'a' && lc <= 'f') {
-									col = (col << 4) | (lc - 'a' + 0xA);
-								} else {
-									break;
-								}
-								dc++;
-								c++;
-							}
-							if (*c == '\r') {
-								c++;
-								s = 6;
-							}
-						case 6:
-							if (*c == '\n' && (dc == 6 || dc == 8)) {
-								c++;
-								if (dc == 6) {
-									canvas.set(x, y, col << 8);
-								} else {
-									canvas.blend(x, y, col);
-								}
-								s = x = y = col = dc = 0;
-								goto case0;
-							} else {
-								break;
-							}
-						case7:
-						case 7:
-							switch (dc) {
-								case 0:
-									if (*c == 'I') c++; else { dc = 0; break; }
-								case 1:
-									if (*c == 'Z') c++; else { dc = 1; break; }
-								case 2:
-									if (*c == 'E') c++; else { dc = 2; break; }
-								case 3:
-									if (*c != '\n') {
-										if (*c == '\r') c++; else { dc = 3; break; }
-									}
-								case 4:
-									if (*c == '\n') {
-										int pending;
-										int err = ioctl(fd, SIOCOUTQ, &pending);
-										if (err || pending) {
-											break;
-										}
-										if (write(fd, sizeData, sizeLen) != sizeLen) {
-											break;
-										}
-										s = x = y = col = dc = 0;
-										c++;
-										goto case0;
-									} else { dc = 4; break; }
-							}
-						case8:
-						case 8:
-							switch (dc) {
-								case 0:
-									if (*c == 'E') c++; else { dc = 0; break; }
-								case 1:
-									if (*c == 'L') c++; else { dc = 1; break; }
-								case 2:
-									if (*c == 'P') c++; else { dc = 2; break; }
-								case 3:
-									if (*c != '\n') {
-										if (*c == '\r') c++; else { dc = 3; break; }
-									}
-								case 4:
-									if (*c == '\n') {
-										int pending;
-										int err = ioctl(fd, SIOCOUTQ, &pending);
-										if (err || pending) {
-											break;
-										}
-										if (write(fd, HELP_TEXT, HELP_TEXT_SIZE) != HELP_TEXT_SIZE) {
-											break;
-										}
-										s = x = y = col = dc = 0;
-										c++;
-										goto case0;
-									} else { dc = 4; break; }
-							}
-					}
-					if (s <= 2) {
-						dc = s;
-						s = 0;
-					} else {
-						s -= 2;
-					}
-					if (c == buf + size) {
-						comb = s * 9 + dc;
-						assert(!(col & ~0xFFFFFFFF));
-						assert(!(x & ~0x1FFF));
-						assert(!(y & ~0x1FFF));
-						assert(!(comb & ~0x3F));
-						state[fd] = col | (uint64_t(x) << 32) | (uint64_t(y) << 45) | (uint64_t(comb) << 58);
-					} else {
-						size = 0;
+					state[fd] = parse(&canvas.data, &c, state[fd], nullptr);
+					if (((state[fd] & CLOSED_STATE) == CLOSED_STATE) || c != buf + size) {
+						std::cout << state[fd] << std::endl;
+						state[fd] = CLOSED_STATE;
+						close(fd);
 						BREAK_IF_ET;
 					}
 				}

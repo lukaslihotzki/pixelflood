@@ -7,6 +7,7 @@
 
 #include <stdexcept>
 #include <GLFW/glfw3.h>
+#include <sys/mman.h>
 
 static const float vertices[][4] = {{-1.f,-1.f,+0.f,+1.f},
                                     {+1.f,-1.f,+1.f,+1.f},
@@ -121,14 +122,15 @@ void Display::createTexture(int width, int height)
 	if (GL_ARB_buffer_storage) {
 		glGenBuffers(1, &buf);
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buf);
-		GLuint size = width * height * sizeof(uint32_t);
+		GLuint size = width * height * 2 * sizeof(uint32_t);
 		GLuint flags = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
 		glBufferStorage(GL_PIXEL_UNPACK_BUFFER, size, nullptr, flags | GL_CLIENT_STORAGE_BIT);
 		canvas.data = (uint32_t*)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, size, flags);
+		madvise(canvas.data, size, MADV_HUGEPAGE);
 		texImageBuf = nullptr;
 	} else
 #endif
-		texImageBuf = canvas.data = new uint32_t[width * height];
+		texImageBuf = canvas.data = new uint32_t[width * height * 2];
 }
 
 void Display::cleanupTexture()

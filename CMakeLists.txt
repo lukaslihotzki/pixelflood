@@ -1,9 +1,10 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.8)
 
 project(pixelflood)
 
 include(CMakeDependentOption)
 
+enable_language(ASM)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -70,7 +71,7 @@ endif()
 
 list(APPEND my_SOURCES canvas.hpp version.h)
 
-cmake_dependent_option(USE_FREETYPE "Use FreeType to draw text" ON "FREETYPE_FOUND" OFF)
+cmake_dependent_option(USE_FREETYPE "Use FreeType to draw text" OFF "FREETYPE_FOUND" OFF)
 
 if (NETWORK MATCHES "BOOST_ASIO")
     add_definitions(-DUSE_BOOST_ASIO)
@@ -87,7 +88,7 @@ endif()
 if (NETWORK MATCHES "EPOLL")
     set(USE_EPOLL ON)
     add_definitions(-DUSE_NETWORK_EPOLL)
-    list(APPEND my_SOURCES network_epoll.cpp network_epoll.hpp)
+    list(APPEND my_SOURCES network_epoll.cpp network_epoll.hpp parse4g.s)
 endif()
 
 cmake_dependent_option(USE_EDGE_TRIGGERED_EPOLL "Use edge triggered epoll" OFF "USE_EPOLL" OFF)

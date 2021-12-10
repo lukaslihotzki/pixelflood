@@ -1,5 +1,19 @@
 .section .text
 .text
+.globl parse_init
+.type parse_init, @function
+parse_init:
+	vmovq .LC0(%rip), %xmm1
+	vmovq .LC1(%rip), %xmm2
+	vmovq .LC2(%rip), %xmm5
+	vmovdqa .LC3(%rip), %xmm6
+	vmovdqa .LC4(%rip), %xmm7
+	vmovdqa .LC5(%rip), %xmm8
+	vmovdqa .LC9(%rip), %xmm9
+	vmovdqa .LC10(%rip), %xmm10
+	vmovdqa .LC11(%rip), %xmm11
+	vmovdqa .LC12(%rip), %xmm12
+	ret
 .globl parse
 .type parse, @function
 parse:
@@ -18,16 +32,6 @@ parse:
 parsew:
 	movl $-1, %r8d
 	leaq .table(%rip), %rbx
-	vmovq .LC0(%rip), %xmm1
-	vmovq .LC1(%rip), %xmm2
-	vmovq .LC2(%rip), %xmm5
-	vmovdqa .LC3(%rip), %xmm6
-	vmovdqa .LC4(%rip), %xmm7
-	vmovdqa .LC5(%rip), %xmm8
-	vmovdqa .LC9(%rip), %xmm9
-	vmovdqa .LC10(%rip), %xmm10
-	vmovdqa .LC11(%rip), %xmm11
-	vmovdqa .LC12(%rip), %xmm12
 	vpxor %xmm13, %xmm13, %xmm13
 	movl $1920, %eax
 	vpinsrw $3, %eax, %xmm13, %xmm13

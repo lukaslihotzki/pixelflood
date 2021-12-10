@@ -44,6 +44,7 @@
 #define CLOSED_STATE 0xf
 
 extern "C" {
+	void parse_init();
 	uint64_t parse(uint32_t** output, char** str, uint64_t state, char* cout);
 }
 
@@ -145,13 +146,14 @@ void NetworkHandler::work()
 
 	char* buf = (char*)mmap(nullptr, 1<<21, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
 	char* fbuf = buf;
-	char* bbuf = buf + (1<<16);
+	char* bbuf = buf + (1<<18);
 	madvise(buf, 1<<21, MADV_HUGEPAGE);
 	std::atomic<bool> running(true);
 	pthread_barrier_t barrier;
 	pthread_barrier_init(&barrier, nullptr, 2);
 	int fdr[2];
 	std::thread parser(&NetworkHandler::work_parse, this, buf, &barrier, &running, fdr);
+	int size;
 
 	for (;;) {
 		struct epoll_event event[MAX_EVENTS];
@@ -168,6 +170,7 @@ void NetworkHandler::work()
 				std::cout << "join" << std::endl;
 				pthread_barrier_destroy(&barrier);
 				std::cout << "bard" << std::endl;
+	std::cout << size << std::endl;
 				return;
 			} else if (fd == serverfd) {
 				int clientfd;
@@ -189,8 +192,7 @@ void NetworkHandler::work()
 #endif
 				}
 			} else {
-				int size;
-				READ ((size = read(fd, fbuf, 65535)) > 0) {
+				READ ((size = read(fd, fbuf, (1<<18)-1)) > 0) {
 					fbuf[size] = '\0';
 					fdr[0] = fd;
 					pthread_barrier_wait(&barrier);
@@ -210,13 +212,13 @@ void NetworkHandler::work()
 			}
 		}
 	}
-	
 }
 
 void NetworkHandler::work_parse(char* buf, pthread_barrier_t* barrier, std::atomic<bool>* running, int* fd)
 {
 	char* fbuf = buf;
-	char* bbuf = buf + (1<<16);
+	char* bbuf = buf + (1<<18);
+	parse_init();
 	for (;;) {
 		pthread_barrier_wait(barrier);
 		if (!*running) return;

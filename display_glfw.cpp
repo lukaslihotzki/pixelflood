@@ -123,7 +123,7 @@ void Display::createTexture(int width, int height)
 		glGenBuffers(1, &buf);
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buf);
 		GLuint size = width * height * 2 * sizeof(uint32_t);
-		GLuint flags = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+		GLuint flags = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT;
 		glBufferStorage(GL_PIXEL_UNPACK_BUFFER, size, nullptr, flags | GL_CLIENT_STORAGE_BIT);
 		canvas.data = (uint32_t*)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, size, flags);
 		madvise(canvas.data, size, MADV_HUGEPAGE);

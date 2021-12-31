@@ -22,12 +22,11 @@
 
 #define HEX_DIGIT(c) \
 	if (it != end) { \
+	char lc = *it | 0x20; \
 	if (*it >= '0' && *it <= '9') { \
 	c |= *it - '0'; \
-	} else if (*it >= 'a' && *it <= 'f') { \
-	c |= *it - 'a' + 0xA; \
-	} else if (*it >= 'A' && *it <= 'F') { \
-	c |= *it - 'A' + 0xA; \
+	} else if (lc >= 'a' && lc <= 'f') { \
+	c |= lc - 'a' + 0xA; \
 	} else { \
 	goto err; \
 	} \

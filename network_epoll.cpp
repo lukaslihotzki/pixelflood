@@ -217,12 +217,11 @@ void NetworkHandler::work()
 						case 5:
 							s = 5;
 							while (dc < 8) {
+								char lc = *c | 0x20;
 								if (*c >= '0' && *c <= '9') {
 									col = (col << 4) | (*c - '0');
-								} else if (*c >= 'a' && *c <= 'f') {
-									col = (col << 4) | (*c - 'a' + 0xA);
-								} else if (*c >= 'A' && *c <= 'F') {
-									col = (col << 4) | (*c - 'A' + 0xA);
+								} else if (lc >= 'a' && lc <= 'f') {
+									col = (col << 4) | (lc - 'a' + 0xA);
 								} else {
 									break;
 								}

@@ -5,6 +5,7 @@
 #include <atomic>
 #include <thread>
 #include <stack>
+#include <string>
 
 class NetworkHandler
 {

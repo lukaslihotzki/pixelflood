@@ -6,6 +6,7 @@
 #include <memory>
 #include <regex>
 #include <sstream>
+#include <string>
 
 #ifdef USE_NETWORK_EPOLL
 #include <unistd.h>

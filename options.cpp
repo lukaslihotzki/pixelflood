@@ -1,6 +1,7 @@
 #include "options.hpp"
 #include "version.h"
 #include <thread>
+#include <string>
 #include <iostream>
 
 #define REQUIRE(x) if (!(x)) return false;

@@ -4,6 +4,7 @@
 #include "canvas.hpp"
 #include <atomic>
 #include <thread>
+#include <string>
 #include <stack>
 
 class NetworkHandler
